@@ -6,11 +6,18 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     const { data, error } = await supabase
       .from('orders')
-      .select('fisno, carikod, order_items(*)')
+      .select(`
+        fisno,
+        carikod,
+        order_items(*)
+      `)
       .order('fisno', { ascending: false })
       .limit(10);
 
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) {
+      console.error("Supabase error:", error);
+      return res.status(500).json({ error: error.message });
+    }
 
     res.status(200).json(data);
   } else {
