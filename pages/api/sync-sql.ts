@@ -20,7 +20,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method !== "POST") return res.status(405).json({ message: "Method not allowed" });
 
   try {
-    // 1. SQL Server'dan veri çek
     const pool = await sql.connect(sqlConfig);
     const result = await pool.request().query(`
       SELECT TOP 10 FISNO, STOK_KODU, STHAR_GCMIK, STHAR_BF, STHAR_SATISK, STHAR_CARIKOD
@@ -29,14 +28,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     `);
     const rows = result.recordset;
 
-    // 2. Supabase'e upsert et
     const { error } = await supabase.from("orders").upsert(rows);
-    if (error) throw new Error("Supabase insert hatası: " + error.message);
+    if (error) {
+      console.error("Supabase error:", error);
+      return res.status(500).json({ message: "❌ Supabase hatası: " + error.message });
+    }
 
-    res.status(200).json({ message: "✅ Siparişler başarıyla Supabase'e aktarıldı!" });
+    return res.status(200).json({ message: "✅ Siparişler başarıyla Supabase'e aktarıldı!" });
   } catch (err: any) {
-    console.error(err);
-    res.status(500).json({ message: "❌ Hata: " + err.message });
+    console.error("Hata:", err);
+    return res.status(500).json({ message: "❌ Hata: " + err.message });
   } finally {
     sql.close();
   }
