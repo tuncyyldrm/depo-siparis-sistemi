@@ -82,29 +82,33 @@ export default function Home() {
       <p>{status}</p>
       <div>
         {selectedFisno && (
-          <div>
-            <h2>FİŞ NO: {selectedFisno}</h2>
-            {orders.find(o => o.fisno === selectedFisno)?.order_items.map((item, i) => (
-              <div key={i} style={{ 
-                border: '1px solid #ccc', 
-                marginBottom: 10, 
-                padding: 10, 
-                borderRadius: 5, 
-                backgroundColor: selections[selectedFisno]?.[i] ? '#d0f0d0' : '#fff' 
-              }}>
-                <strong>{item.stok_kodu}</strong><br />
-                Miktar: {item.sthar_gcmik} | Depo: {item.depo_miktar}<br />
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={!!selections[selectedFisno]?.[i]}
-                    onChange={e => toggleSelection(selectedFisno, i, e.target.checked)}
-                  /> Seçildi
-                </label>
-              </div>
-            ))}
-          </div>
-        )}
+  <div>
+    <h2>FİŞ NO: {selectedFisno}</h2>
+    {orders
+      .filter(o => o.fisno === selectedFisno)
+      .map((item, i) => (
+        <div key={i} style={{ 
+          border: '1px solid #ccc', 
+          marginBottom: 10, 
+          padding: 10, 
+          borderRadius: 5, 
+          backgroundColor: selections[selectedFisno]?.[i] ? '#d0f0d0' : '#fff' 
+        }}>
+          <strong>{item.stok_kodu}</strong><br />
+          Miktar: {item.sthar_gcmik} | Depo: {item.depo_miktar ?? '-'}<br />
+          <label>
+            <input
+              type="checkbox"
+              checked={!!selections[selectedFisno]?.[i]}
+              onChange={e => toggleSelection(selectedFisno, i, e.target.checked)}
+            /> Seçildi
+          </label>
+        </div>
+      ))
+    }
+  </div>
+)}
+
       </div>
     </main>
   );
