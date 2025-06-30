@@ -1,4 +1,4 @@
-// pages/api/sync-sql.js (veya .ts)
+// pages/api/sync-sql.js
 
 import sql from "mssql";
 import { createClient } from "@supabase/supabase-js";
@@ -25,12 +25,27 @@ export default async function handler(req, res) {
   try {
     const pool = await sql.connect(sqlConfig);
     const result = await pool.request().query(`
-      SELECT TOP 10 FISNO, STOK_KODU, STHAR_GCMIK, STHAR_BF, STHAR_SATISK, STHAR_CARIKOD
+      SELECT TOP 10
+        FISNO,
+        STOK_KODU,
+        STHAR_GCMIK,
+        STHAR_BF,
+        STHAR_SATISK,
+        STHAR_CARIKOD
       FROM TBLSIPATRA
       ORDER BY FISNO DESC
     `);
 
-    const rows = result.recordset;
+    const rows = result.recordset.map(row => ({
+      fisno: row.FISNO,
+      stok_kodu: row.STOK_KODU,
+      sthar_gcmik: row.STHAR_GCMIK,
+      sthar_bf: row.STHAR_BF,
+      sthar_satisk: row.STHAR_SATISK,
+      sthar_carikod: row.STHAR_CARIKOD,
+      kod_5: null,          // SQL sorgunda yok ama Supabase tablosunda var; istersen burayı doldurabilirsin
+      depo_miktar: null     // SQL sorgunda yok ama Supabase tablosunda var; istersen ekleyebilirsin
+    }));
 
     const { error } = await supabase.from("order_items").upsert(rows);
 
@@ -39,7 +54,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ message: "Supabase hatası: " + error.message });
     }
 
-    return res.status(200).json({ message: "Siparişler başarıyla Supabase'e aktarıldı!" });
+    return res.status(200).json({ message: "Sipariş kalemleri order_items tablosuna başarıyla aktarıldı!" });
   } catch (err) {
     console.error("Hata:", err);
     return res.status(500).json({ message: "Sunucu hatası: " + err.message });
