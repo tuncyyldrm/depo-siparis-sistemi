@@ -11,7 +11,6 @@ export default function Home() {
   const [cariPopupVisible, setCariPopupVisible] = useState(false);
   const [cariIframeSrc, setCariIframeSrc] = useState("");
 
-  // Data yükle
   useEffect(() => {
     fetchOrders();
     fetchSelections();
@@ -77,12 +76,12 @@ export default function Home() {
       .trim();
   }
 
-  // Filtrelenmiş seçili fişin sipariş satırları
+  // seçili fişe göre filtreli siparişler
   const filteredOrders = selectedFisno
     ? orders.filter((o) => o.FISNO === selectedFisno)
     : [];
 
-  // Cari popup aç
+  // Popupları aç/kapat fonksiyonları
   const openCariPopup = (cariKod) => {
     setCariIframeSrc(
       "https://katalog.yigitotomotiv.com/etiket/cari?arama=" +
@@ -90,11 +89,10 @@ export default function Home() {
     );
     setCariPopupVisible(true);
   };
+  const closeCariPopup = () => setCariPopupVisible(false);
 
-  // Resim popup aç
   const openImgPopup = (src) => setImgPopupSrc(src);
   const closeImgPopup = () => setImgPopupSrc("");
-  const closeCariPopup = () => setCariPopupVisible(false);
 
   return (
     <>
@@ -137,6 +135,7 @@ export default function Home() {
           border-radius: 8px;
           cursor: pointer;
           box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+          transition: background-color 0.3s ease;
         }
         button:hover,
         button:focus {
@@ -170,6 +169,7 @@ export default function Home() {
           border-radius: 10px;
           gap: 2%;
           align-items: center;
+          transition: background-color 0.3s ease;
         }
         .item img {
           width: 100%;
@@ -177,6 +177,7 @@ export default function Home() {
           height: auto;
           border-radius: 6px;
           cursor: zoom-in;
+          user-select: none;
         }
         .stok-text {
           font-weight: 500;
@@ -238,6 +239,14 @@ export default function Home() {
           border-radius: 5px;
           padding: 6px 10px;
           cursor: pointer;
+          font-weight: 600;
+          font-size: 1rem;
+          transition: background-color 0.3s ease;
+        }
+        #cariPopup button.closeBtn:hover,
+        #cariPopup button.closeBtn:focus {
+          background-color: darkred;
+          outline: none;
         }
         #cariPopup iframe {
           width: 100%;
@@ -282,10 +291,12 @@ export default function Home() {
 
         {selectedFisno && (
           <>
-            <div className="fis-baslik">📄 FİŞ NO: {selectedFisno}</div>
+                       <div className="fis-baslik">📄 FİŞ NO: {selectedFisno}</div>
             <div>
               {filteredOrders.length === 0 && (
-                <p>Bu fiş için sipariş bulunamadı.</p>
+                <p style={{ textAlign: "center", color: "#999" }}>
+                  Bu fiş için sipariş bulunamadı.
+                </p>
               )}
               {filteredOrders.map((row, index) => {
                 const stokKodu = row.STOK_KODU.toUpperCase();
@@ -294,27 +305,30 @@ export default function Home() {
                   temizKod
                 )}.jpg`;
 
-                // Markalar için sınıf isimleri
+                // Markalar için sınıf isimleri (isteğe göre CSS ile stillendirilebilir)
                 let markaClass = "";
                 if (stokKodu.includes("OEM")) markaClass = "marka-oem";
                 else if (stokKodu.includes("RNR")) markaClass = "marka-rnr";
                 else if (stokKodu.includes("PNH")) markaClass = "marka-pnh";
 
-                const isSelected =
-                  selections[selectedFisno]?.[index] === true;
+                const isSelected = selections[selectedFisno]?.[index] === true;
 
                 return (
                   <div
                     key={`${row.STOK_KODU}_${index}`}
-                    className={`item ${isSelected ? "selected" : ""} ${
-                      markaClass
-                    }`}
+                    className={`item ${isSelected ? "selected" : ""} ${markaClass}`}
                   >
                     <img
                       src={imageUrl}
                       alt={row.STOK_KODU}
                       loading="lazy"
                       onClick={() => openImgPopup(imageUrl)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") openImgPopup(imageUrl);
+                      }}
+                      aria-label={`${row.STOK_KODU} görselini büyüt`}
                     />
                     <div className="stok-text">
                       {row.STOK_KODU}
@@ -322,11 +336,11 @@ export default function Home() {
                       <small>RAF: {row.KOD_5 || "-"}</small>
                     </div>
                     <div className="miktar-text">
-                      <div style={{ color: "#388e3c" }}>🛒Sepet:</div>
+                      <div style={{ color: "#388e3c" }}>🛒 Sepet:</div>
                       <div style={{ color: "#388e3c" }}>
                         {parseFloat(row.STHAR_GCMIK)}
                       </div>
-                      <div style={{ color: "#d32f2f" }}>🏬Depo:</div>
+                      <div style={{ color: "#d32f2f" }}>🏬 Depo:</div>
                       <div style={{ color: "#d32f2f" }}>
                         {parseFloat(row.DEPO_MIKTAR) || 0}
                       </div>
@@ -353,16 +367,14 @@ export default function Home() {
                 textDecoration: "underline",
               }}
               onClick={() => {
-                const cariKod =
-                  filteredOrders[0]?.STHAR_CARIKOD || "";
+                const cariKod = filteredOrders[0]?.STHAR_CARIKOD || "";
                 if (cariKod) openCariPopup(cariKod);
               }}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
-                  const cariKod =
-                    filteredOrders[0]?.STHAR_CARIKOD || "";
+                  const cariKod = filteredOrders[0]?.STHAR_CARIKOD || "";
                   if (cariKod) openCariPopup(cariKod);
                 }
               }}
@@ -384,6 +396,7 @@ export default function Home() {
             onKeyDown={(e) => {
               if (e.key === "Escape") closeImgPopup();
             }}
+            style={{ cursor: "pointer" }}
           >
             <img src={imgPopupSrc} alt="Büyük resim" />
           </div>
@@ -396,10 +409,12 @@ export default function Home() {
             role="dialog"
             aria-modal="true"
             tabIndex={-1}
-            style={{ display: "flex" }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") closeCariPopup();
+            }}
           >
             <div>
-              <button className="closeBtn" onClick={closeCariPopup}>
+              <button className="closeBtn" onClick={closeCariPopup} aria-label="Cari popup kapat">
                 Kapat
               </button>
               <iframe src={cariIframeSrc} title="Cari Bilgisi" />
