@@ -24,6 +24,7 @@ export default async function handler(req, res) {
 
   try {
     const pool = await sql.connect(sqlConfig);
+
     const result = await pool.request().query(`
       SELECT TOP 10
         FISNO,
@@ -36,25 +37,44 @@ export default async function handler(req, res) {
       ORDER BY FISNO DESC
     `);
 
-    const rows = result.recordset.map(row => ({
+    const rows = result.recordset;
+
+    // 1️⃣ Önce orders tablosuna fisno-carikod bilgilerini güncelle
+    const uniqueOrders = Array.from(
+      new Map(rows.map(row => [row.FISNO, row])).values()
+    ).map(order => ({
+      fisno: order.FISNO,
+      carikod: order.STHAR_CARIKOD || null,
+      created_at: new Date().toISOString(),
+    }));
+
+    const { error: orderError } = await supabase.from("orders").upsert(uniqueOrders, {
+      onConflict: 'fisno'
+    });
+    if (orderError) {
+      console.error("Orders upsert hatası:", orderError);
+      return res.status(500).json({ message: "Supabase orders hatası: " + orderError.message });
+    }
+
+    // 2️⃣ Ardından order_items tablosuna kalemleri upsert et
+    const orderItems = rows.map(row => ({
       fisno: row.FISNO,
       stok_kodu: row.STOK_KODU,
       sthar_gcmik: row.STHAR_GCMIK,
-      sthar_bf: row.STHAR_BF,
+      sthar_bf: row.STHAR_BF ? parseFloat(row.STHAR_BF) : null,  // ondalık desteği
       sthar_satisk: row.STHAR_SATISK,
       sthar_carikod: row.STHAR_CARIKOD,
-      kod_5: null,          // SQL sorgunda yok ama Supabase tablosunda var; istersen burayı doldurabilirsin
-      depo_miktar: null     // SQL sorgunda yok ama Supabase tablosunda var; istersen ekleyebilirsin
+      kod_5: null,
+      depo_miktar: null
     }));
 
-    const { error } = await supabase.from("order_items").upsert(rows);
-
-    if (error) {
-      console.error("Supabase error:", error);
-      return res.status(500).json({ message: "Supabase hatası: " + error.message });
+    const { error: itemsError } = await supabase.from("order_items").upsert(orderItems);
+    if (itemsError) {
+      console.error("Order_items upsert hatası:", itemsError);
+      return res.status(500).json({ message: "Supabase order_items hatası: " + itemsError.message });
     }
 
-    return res.status(200).json({ message: "Sipariş kalemleri order_items tablosuna başarıyla aktarıldı!" });
+    return res.status(200).json({ message: "Siparişler ve kalemler başarıyla Supabase'e aktarıldı!" });
   } catch (err) {
     console.error("Hata:", err);
     return res.status(500).json({ message: "Sunucu hatası: " + err.message });
