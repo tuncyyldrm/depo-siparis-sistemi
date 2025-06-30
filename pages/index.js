@@ -267,161 +267,162 @@ export default function Home() {
           }
         }
       `}</style>
-      <main>
-        <h1>📦 Malzeme Toplama Fişi</h1>
-        <button onClick={fetchOrders}>🔄 Siparişleri Yenile</button>
-        <select
-          value={selectedFisno}
-          onChange={(e) => setSelectedFisno(e.target.value)}
-          aria-label="Fiş seçiniz"
-        >
-          <option value="">Fiş Seçiniz...</option>
-          {[...new Set(orders.map((o) => o.FISNO))]
-            .sort()
-            .reverse()
-            .map((fis) => (
-              <option key={fis} value={fis}>
-                {fis}
-              </option>
-            ))}
-        </select>
-        <div id="status" role="status" aria-live="polite">
-          {status}
-        </div>
+<main>
+  <h1>📦 Malzeme Toplama Fişi</h1>
+  <button onClick={fetchOrders}>🔄 Siparişleri Yenile</button>
+  <select
+    value={selectedFisno}
+    onChange={(e) => setSelectedFisno(e.target.value)}
+    aria-label="Fiş seçiniz"
+  >
+    <option value="">Fiş Seçiniz...</option>
+    {[...new Set(orders.map((o) => o.fisno))]
+      .sort()
+      .reverse()
+      .map((fis) => (
+        <option key={fis} value={fis}>
+          {fis}
+        </option>
+      ))}
+  </select>
+  <div id="status" role="status" aria-live="polite">
+    {status}
+  </div>
 
-        {selectedFisno && (
-          <>
-                       <div className="fis-baslik">📄 FİŞ NO: {selectedFisno}</div>
-            <div>
-              {filteredOrders.length === 0 && (
-                <p style={{ textAlign: "center", color: "#999" }}>
-                  Bu fiş için sipariş bulunamadı.
-                </p>
-              )}
-              {filteredOrders.map((row, index) => {
-                const stokKodu = row.STOK_KODU.toUpperCase();
-                const temizKod = temizleStokKodu(row.STOK_KODU);
-                const imageUrl = `https://katalog.yigitotomotiv.com/resim/${encodeURIComponent(
-                  temizKod
-                )}.jpg`;
+  {selectedFisno && (
+    <>
+      <div className="fis-baslik">📄 FİŞ NO: {selectedFisno}</div>
+      <div>
+        {orderItems.length === 0 && (
+          <p style={{ textAlign: "center", color: "#999" }}>
+            Bu fiş için sipariş bulunamadı.
+          </p>
+        )}
+        {orderItems.map((item, index) => {
+          const stokKodu = item.stok_kodu?.toUpperCase() || "";
+          const temizKod = temizleStokKodu(item.stok_kodu || "");
+          const imageUrl = `https://katalog.yigitotomotiv.com/resim/${encodeURIComponent(
+            temizKod
+          )}.jpg`;
 
-                // Markalar için sınıf isimleri (isteğe göre CSS ile stillendirilebilir)
-                let markaClass = "";
-                if (stokKodu.includes("OEM")) markaClass = "marka-oem";
-                else if (stokKodu.includes("RNR")) markaClass = "marka-rnr";
-                else if (stokKodu.includes("PNH")) markaClass = "marka-pnh";
+          // Markalar için sınıf isimleri (CSS'de tanımlayın)
+          let markaClass = "";
+          if (stokKodu.includes("OEM")) markaClass = "marka-oem";
+          else if (stokKodu.includes("RNR")) markaClass = "marka-rnr";
+          else if (stokKodu.includes("PNH")) markaClass = "marka-pnh";
 
-                const isSelected = selections[selectedFisno]?.[index] === true;
+          const isSelected = selections[selectedFisno]?.[index] === true;
 
-                return (
-                  <div
-                    key={`${row.STOK_KODU}_${index}`}
-                    className={`item ${isSelected ? "selected" : ""} ${markaClass}`}
-                  >
-                    <img
-                      src={imageUrl}
-                      alt={row.STOK_KODU}
-                      loading="lazy"
-                      onClick={() => openImgPopup(imageUrl)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") openImgPopup(imageUrl);
-                      }}
-                      aria-label={`${row.STOK_KODU} görselini büyüt`}
-                    />
-                    <div className="stok-text">
-                      {row.STOK_KODU}
-                      <br />
-                      <small>RAF: {row.KOD_5 || "-"}</small>
-                    </div>
-                    <div className="miktar-text">
-                      <div style={{ color: "#388e3c" }}>🛒 Sepet:</div>
-                      <div style={{ color: "#388e3c" }}>
-                        {parseFloat(row.STHAR_GCMIK)}
-                      </div>
-                      <div style={{ color: "#d32f2f" }}>🏬 Depo:</div>
-                      <div style={{ color: "#d32f2f" }}>
-                        {parseFloat(row.DEPO_MIKTAR) || 0}
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={!!isSelected}
-                      onChange={(e) =>
-                        toggleSelection(selectedFisno, index, e.target.checked)
-                      }
-                      aria-label={`Sipariş ${row.STOK_KODU} seçildi`}
-                    />
-                  </div>
-                );
-              })}
-            </div>
+          return (
             <div
-              style={{
-                textAlign: "center",
-                marginTop: 16,
-                color: "#2b6cb0",
-                cursor: "pointer",
-                fontWeight: "600",
-                textDecoration: "underline",
-              }}
-              onClick={() => {
-                const cariKod = filteredOrders[0]?.STHAR_CARIKOD || "";
-                if (cariKod) openCariPopup(cariKod);
-              }}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  const cariKod = filteredOrders[0]?.STHAR_CARIKOD || "";
-                  if (cariKod) openCariPopup(cariKod);
-                }
-              }}
-              aria-label="Cari bilgilerini aç"
+              key={`${item.stok_kodu}_${index}`}
+              className={`item ${isSelected ? "selected" : ""} ${markaClass}`}
             >
-              Cari Kodu Göster
+              <img
+                src={imageUrl}
+                alt={item.stok_kodu}
+                loading="lazy"
+                onClick={() => openImgPopup(imageUrl)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") openImgPopup(imageUrl);
+                }}
+                aria-label={`${item.stok_kodu} görselini büyüt`}
+              />
+              <div className="stok-text">
+                {item.stok_kodu}
+                <br />
+                <small>RAF: {item.kod_5 || "-"}</small>
+              </div>
+              <div className="miktar-text">
+                <div style={{ color: "#388e3c" }}>🛒 Sepet:</div>
+                <div style={{ color: "#388e3c" }}>
+                  {parseFloat(item.sthar_gcmik)}
+                </div>
+                <div style={{ color: "#d32f2f" }}>🏬 Depo:</div>
+                <div style={{ color: "#d32f2f" }}>
+                  {parseFloat(item.depo_miktar) || 0}
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={!!isSelected}
+                onChange={(e) =>
+                  toggleSelection(selectedFisno, index, e.target.checked)
+                }
+                aria-label={`Sipariş ${item.stok_kodu} seçildi`}
+              />
             </div>
-          </>
-        )}
+          );
+        })}
+      </div>
+      <div
+        style={{
+          textAlign: "center",
+          marginTop: 16,
+          color: "#2b6cb0",
+          cursor: "pointer",
+          fontWeight: "600",
+          textDecoration: "underline",
+        }}
+        onClick={() => {
+          const cariKod = orderItems[0]?.sthar_carikod || "";
+          if (cariKod) openCariPopup(cariKod);
+        }}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            const cariKod = orderItems[0]?.sthar_carikod || "";
+            if (cariKod) openCariPopup(cariKod);
+          }
+        }}
+        aria-label="Cari bilgilerini aç"
+      >
+        Cari Kodu Göster
+      </div>
+    </>
+  )}
 
-        {/* Resim Popup */}
-        {imgPopupSrc && (
-          <div
-            id="imgPopup"
-            role="dialog"
-            aria-modal="true"
-            tabIndex={-1}
-            onClick={closeImgPopup}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") closeImgPopup();
-            }}
-            style={{ cursor: "pointer" }}
-          >
-            <img src={imgPopupSrc} alt="Büyük resim" />
-          </div>
-        )}
+  {/* Resim Popup */}
+  {imgPopupSrc && (
+    <div
+      id="imgPopup"
+      role="dialog"
+      aria-modal="true"
+      tabIndex={-1}
+      onClick={closeImgPopup}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") closeImgPopup();
+      }}
+      style={{ cursor: "pointer" }}
+    >
+      <img src={imgPopupSrc} alt="Büyük resim" />
+    </div>
+  )}
 
-        {/* Cari Popup */}
-        {cariPopupVisible && (
-          <div
-            id="cariPopup"
-            role="dialog"
-            aria-modal="true"
-            tabIndex={-1}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") closeCariPopup();
-            }}
-          >
-            <div>
-              <button className="closeBtn" onClick={closeCariPopup} aria-label="Cari popup kapat">
-                Kapat
-              </button>
-              <iframe src={cariIframeSrc} title="Cari Bilgisi" />
-            </div>
-          </div>
-        )}
-      </main>
+  {/* Cari Popup */}
+  {cariPopupVisible && (
+    <div
+      id="cariPopup"
+      role="dialog"
+      aria-modal="true"
+      tabIndex={-1}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") closeCariPopup();
+      }}
+    >
+      <div>
+        <button className="closeBtn" onClick={closeCariPopup} aria-label="Cari popup kapat">
+          Kapat
+        </button>
+        <iframe src={cariIframeSrc} title="Cari Bilgisi" />
+      </div>
+    </div>
+  )}
+</main>
+
     </>
   );
 }
