@@ -20,13 +20,88 @@ export default function Home() {
     fetchSelections();
   }, []);
 
-  // fetchOrders, fetchSelections, toggleSelection, handleSync aynı şekilde...
+  const fetchOrders = async () => {
+    try {
+      setStatus('Siparişler yükleniyor...');
+      const res = await fetch('/api/orders');
+      if (!res.ok) throw new Error("Sipariş verisi alınamadı");
+      const data = await res.json();
+      setOrders(data);
+      setStatus('');
+    } catch (err) {
+      console.error(err);
+      setStatus("Sipariş yükleme hatası: " + err.message);
+    }
+  };
+
+  const fetchSelections = async () => {
+    try {
+      const res = await fetch('/api/selections');
+      if (!res.ok) throw new Error("Seçimler verisi alınamadı");
+      const data = await res.json();
+      const obj = {};
+      data.forEach(sel => {
+        if (!obj[sel.fisno]) obj[sel.fisno] = {};
+        obj[sel.fisno][sel.item_index] = sel.selected;
+      });
+      setSelections(obj);
+    } catch (err) {
+      console.error(err);
+      setStatus("Seçim yükleme hatası: " + err.message);
+    }
+  };
+
+  const toggleSelection = async (fisno, index, checked) => {
+    setSelections(prev => {
+      const newSel = { ...prev };
+      if (!newSel[fisno]) newSel[fisno] = {};
+      newSel[fisno][index] = checked;
+      return newSel;
+    });
+
+    try {
+      const response = await fetch('/api/selections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fisno, item_index: index, selected: checked })
+      });
+      if (!response.ok) {
+        const text = await response.text();
+        alert("Sunucu hatası: " + text);
+      }
+    } catch (e) {
+      alert("İşlem sırasında hata: " + e.message);
+    }
+  };
+
+  const handleSync = async () => {
+    try {
+      setStatus("SQL'den Supabase'e senkronizasyon yapılıyor...");
+      const response = await fetch('/api/sync-sql', { method: 'POST' });
+      if (!response.ok) {
+        const text = await response.text();
+        alert("Sunucu hatası: " + text);
+        return;
+      }
+      const data = await response.json();
+      alert(data.message);
+      await fetchOrders();
+    } catch (e) {
+      alert("İşlem sırasında hata: " + e.message);
+    } finally {
+      setStatus('');
+    }
+  };
 
   return (
     <main style={{ maxWidth: 800, margin: 'auto', padding: 20, fontFamily: 'Arial, sans-serif' }}>
       <h1>Depo Sipariş Sistemi</h1>
       <div style={{ marginBottom: 20 }}>
-        <button onClick={handleSync} className="bg-blue-600 text-white p-3 rounded" style={{ marginBottom: 10 }}>
+        <button
+          onClick={handleSync}
+          className="bg-blue-600 text-white p-3 rounded"
+          style={{ marginBottom: 10 }}
+        >
           🔄 Siparişleri Yenile
         </button>
         <br />
@@ -74,7 +149,7 @@ export default function Home() {
                       style={{ width: 80, height: 80, objectFit: 'contain', borderRadius: 5 }}
                       onError={e => {
                         e.currentTarget.onerror = null;
-                        e.currentTarget.src = '/placeholder-image.png';
+                        e.currentTarget.src = '/placeholder-image.png'; // Yoksa alternatif görsel
                       }}
                     />
                     <div>
