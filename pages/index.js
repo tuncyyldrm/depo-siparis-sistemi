@@ -5,6 +5,15 @@ export default function Home() {
   const [selections, setSelections] = useState({});
   const [selectedFisno, setSelectedFisno] = useState('');
   const [status, setStatus] = useState('');
+  const imageUrl = `https://katalog.yigitotomotiv.com/resim/${encodeURIComponent(temizKod)}.jpg`;
+function temizleStokKodu(stok) {
+  return stok
+    .replace(
+      / BSCH| FEBI\/SWAG| ACD| ACHR| ACORN| AEM| AFK| AKS| ASP| AKSA| ALY| AML| ARC| ATE| AYF| BBT| BEHR| BERU| BEYAZ| BHR| BLS| BLUE| BOU| BRCH| BRD| BRM| BRS| BRSHG| BSG| BTAP| BTP| BTR| BUBI| CDC| CHMP| CHMPN| CMPN| CP| CRB| CRT| DDC| DDCO| DKR| DLHP| DLP| DLPH| DMN| DNS| DODO| DR.MUL| DR.MUL| DR.MULL| DR.MULL| DRK| DUO| DV| ECO| ELTA| ELTH| EMA| EMR| ENG| ERA| ET.1| EURO| EX| EXP| EYM| FAE| FCT| FDR| FEBI| SWAG| FISPA| FLM| FMC| FNTCH| FOMO| FRZ| FSP| FTCH| GE| GE-1| GM| GRT| GUA| GÜNIŞIĞI| HID| HLL| HLX| HÜCO| IMPO| INT| INW| ITH-GERMANY| ITH| -GERMANY| ITM| JPG| JUST| KALE| KGN| KLF| KRK| KRM| KRS| LCS| LDR| LDSN| LEAD| LEIC| LILY| LTN| MAİS| MAİS-OEM| MARS| MAVİ| MCR| MEAT| MGA| MGCVCE| MHL| MITA| MLL| MLS| MLST| MOBİL| MONO| MOR| MOTO| MOTO-2| MOTOR| MRL| MTA| MTCR| MTE| MTRO| MXL| MYL| NAITE| NAİS| NGK| NGR| NMDRN| NRL| NRS| NRSY| NRV| NTK| NWLGHT| NWR| OEM| OEM-MAİS| OES| OLYM| OMR| OPLC| OSCR| OSR| PG| PHLS| PHTN| PLK| PNH| PRBG| PRE| PRM| PRO| PWR| RAINY| RCK| RD| RING| RNG| RNR| RTHN| SAN| SCH| SDT| SEI| SEIM| NEIM| SGM| SGR| SIEM| SK| SKT| SM| SND| SNG| SNL| SNS| SNST| SNT| SPC| SPOT| SWAG| SWB| SWG| TAMA| TAP| TAS| TDS| THR| TKN| TMC| TMS| TPR| TRP| TRTN| TRUCKTEC| TRW| TRX| TSHB| VKN| TYCO| U.TECH| ULM| ULT| UNI| UNPRT| UNU| UNV| UST| VAE| VDO| VEKA| VEMO| VIKA| VLO| VLS| VRT| VSL| WAB| WBC| WBR| WGBRG| WIN| WİN| WNDRP| WRY| WW| YEC| DRTL| YSD| ZERO| ZG| ZNR| ADL| NOVA| MG/g,
+      ""
+    )
+    .trim();
+}
 
   useEffect(() => {
     fetchOrders();
