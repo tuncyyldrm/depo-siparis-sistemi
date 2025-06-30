@@ -32,7 +32,7 @@ export default async function handler(req, res) {
 
     const rows = result.recordset;
 
-    const { error } = await supabase.from("orders").upsert(rows);
+    const { error } = await supabase.from("order_items").upsert(rows);
 
     if (error) {
       console.error("Supabase error:", error);
