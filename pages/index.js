@@ -50,16 +50,26 @@ export default function Home() {
     <main style={{ maxWidth: 800, margin: 'auto', padding: 20, fontFamily: 'Arial, sans-serif' }}>
       <h1>Depo Sipariş Sistemi</h1>
       <div>
-  <button
+<button
   onClick={async () => {
-    const response = await fetch('/api/sync-sql', { method: 'POST' });
-    const data = await response.json();
-    alert(data.message);
+    try {
+      const response = await fetch('/api/sync-sql', { method: 'POST' });
+      if (!response.ok) {
+        const text = await response.text();
+        alert("Sunucu hatası: " + text);
+        return;
+      }
+      const data = await response.json();
+      alert(data.message);
+    } catch (e) {
+      alert("İşlem sırasında hata: " + e.message);
+    }
   }}
   className="bg-blue-600 text-white p-3 rounded"
 >
   🔄 Siparişleri Yenile
 </button>
+
 
         <label>Fiş Seçiniz: </label>
         <select value={selectedFisno} onChange={e => setSelectedFisno(e.target.value)}>
