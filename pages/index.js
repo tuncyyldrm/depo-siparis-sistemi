@@ -293,70 +293,71 @@ export default function Home() {
     <>
       <div className="fis-baslik">📄 FİŞ NO: {selectedFisno}</div>
       <div>
-        {orderItems.length === 0 && (
+        {orders.find(o => o.fisno === selectedFisno)?.order_items.length === 0 && (
           <p style={{ textAlign: "center", color: "#999" }}>
             Bu fiş için sipariş bulunamadı.
           </p>
         )}
-        {orderItems.map((item, index) => {
-          const stokKodu = item.stok_kodu?.toUpperCase() || "";
-          const temizKod = temizleStokKodu(item.stok_kodu || "");
-          const imageUrl = `https://katalog.yigitotomotiv.com/resim/${encodeURIComponent(
-            temizKod
-          )}.jpg`;
 
-          // Markalar için sınıf isimleri (CSS'de tanımlayın)
-          let markaClass = "";
-          if (stokKodu.includes("OEM")) markaClass = "marka-oem";
-          else if (stokKodu.includes("RNR")) markaClass = "marka-rnr";
-          else if (stokKodu.includes("PNH")) markaClass = "marka-pnh";
+        {orders
+          .find(o => o.fisno === selectedFisno)
+          ?.order_items.map((row, index) => {
+            const stokKodu = row.STOK_KODU.toUpperCase();
+            const temizKod = temizleStokKodu(row.STOK_KODU);
+            const imageUrl = `https://katalog.yigitotomotiv.com/resim/${encodeURIComponent(temizKod)}.jpg`;
 
-          const isSelected = selections[selectedFisno]?.[index] === true;
+            let markaClass = "";
+            if (stokKodu.includes("OEM")) markaClass = "marka-oem";
+            else if (stokKodu.includes("RNR")) markaClass = "marka-rnr";
+            else if (stokKodu.includes("PNH")) markaClass = "marka-pnh";
 
-          return (
-            <div
-              key={`${item.stok_kodu}_${index}`}
-              className={`item ${isSelected ? "selected" : ""} ${markaClass}`}
-            >
-              <img
-                src={imageUrl}
-                alt={item.stok_kodu}
-                loading="lazy"
-                onClick={() => openImgPopup(imageUrl)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") openImgPopup(imageUrl);
-                }}
-                aria-label={`${item.stok_kodu} görselini büyüt`}
-              />
-              <div className="stok-text">
-                {item.stok_kodu}
-                <br />
-                <small>RAF: {item.kod_5 || "-"}</small>
-              </div>
-              <div className="miktar-text">
-                <div style={{ color: "#388e3c" }}>🛒 Sepet:</div>
-                <div style={{ color: "#388e3c" }}>
-                  {parseFloat(item.sthar_gcmik)}
+            const isSelected = selections[selectedFisno]?.[index] === true;
+
+            return (
+              <div
+                key={`${row.STOK_KODU}_${index}`}
+                className={`item ${isSelected ? "selected" : ""} ${markaClass}`}
+              >
+                <img
+                  src={imageUrl}
+                  alt={row.STOK_KODU}
+                  loading="lazy"
+                  onClick={() => openImgPopup(imageUrl)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") openImgPopup(imageUrl);
+                  }}
+                  aria-label={`${row.STOK_KODU} görselini büyüt`}
+                />
+                <div className="stok-text">
+                  {row.STOK_KODU}
+                  <br />
+                  <small>RAF: {row.KOD_5 || "-"}</small>
                 </div>
-                <div style={{ color: "#d32f2f" }}>🏬 Depo:</div>
-                <div style={{ color: "#d32f2f" }}>
-                  {parseFloat(item.depo_miktar) || 0}
+                <div className="miktar-text">
+                  <div style={{ color: "#388e3c" }}>🛒 Sepet:</div>
+                  <div style={{ color: "#388e3c" }}>
+                    {parseFloat(row.STHAR_GCMIK)}
+                  </div>
+                  <div style={{ color: "#d32f2f" }}>🏬 Depo:</div>
+                  <div style={{ color: "#d32f2f" }}>
+                    {parseFloat(row.DEPO_MIKTAR) || 0}
+                  </div>
                 </div>
+                <input
+                  type="checkbox"
+                  checked={!!isSelected}
+                  onChange={(e) =>
+                    toggleSelection(selectedFisno, index, e.target.checked)
+                  }
+                  aria-label={`Sipariş ${row.STOK_KODU} seçildi`}
+                />
               </div>
-              <input
-                type="checkbox"
-                checked={!!isSelected}
-                onChange={(e) =>
-                  toggleSelection(selectedFisno, index, e.target.checked)
-                }
-                aria-label={`Sipariş ${item.stok_kodu} seçildi`}
-              />
-            </div>
-          );
-        })}
+            );
+          })}
       </div>
+
       <div
         style={{
           textAlign: "center",
@@ -367,14 +368,14 @@ export default function Home() {
           textDecoration: "underline",
         }}
         onClick={() => {
-          const cariKod = orderItems[0]?.sthar_carikod || "";
+          const cariKod = orders.find(o => o.fisno === selectedFisno)?.order_items[0]?.STHAR_CARIKOD || "";
           if (cariKod) openCariPopup(cariKod);
         }}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
-            const cariKod = orderItems[0]?.sthar_carikod || "";
+            const cariKod = orders.find(o => o.fisno === selectedFisno)?.order_items[0]?.STHAR_CARIKOD || "";
             if (cariKod) openCariPopup(cariKod);
           }
         }}
@@ -384,44 +385,8 @@ export default function Home() {
       </div>
     </>
   )}
-
-  {/* Resim Popup */}
-  {imgPopupSrc && (
-    <div
-      id="imgPopup"
-      role="dialog"
-      aria-modal="true"
-      tabIndex={-1}
-      onClick={closeImgPopup}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") closeImgPopup();
-      }}
-      style={{ cursor: "pointer" }}
-    >
-      <img src={imgPopupSrc} alt="Büyük resim" />
-    </div>
-  )}
-
-  {/* Cari Popup */}
-  {cariPopupVisible && (
-    <div
-      id="cariPopup"
-      role="dialog"
-      aria-modal="true"
-      tabIndex={-1}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") closeCariPopup();
-      }}
-    >
-      <div>
-        <button className="closeBtn" onClick={closeCariPopup} aria-label="Cari popup kapat">
-          Kapat
-        </button>
-        <iframe src={cariIframeSrc} title="Cari Bilgisi" />
-      </div>
-    </div>
-  )}
 </main>
+
 
     </>
   );
