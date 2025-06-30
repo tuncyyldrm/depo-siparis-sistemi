@@ -94,6 +94,9 @@ export default function Home() {
   const openImgPopup = (src) => setImgPopupSrc(src);
   const closeImgPopup = () => setImgPopupSrc("");
 
+  const selectedOrder = orders.find(o => o.fisno === selectedFisno);
+  const orderItems = selectedOrder?.order_items ?? [];
+  
   return (
     <>
       <style jsx>{`
