@@ -15,9 +15,7 @@ const sqlConfig = {
   }
 };
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).json({ message: "Method not allowed" });
-
+async function syncData() {
   try {
     const pool = await sql.connect(sqlConfig);
     const result = await pool.request().query(`
@@ -25,19 +23,20 @@ export default async function handler(req, res) {
       FROM TBLSIPATRA
       ORDER BY FISNO DESC
     `);
-    const rows = result.recordset;
 
+    const rows = result.recordset;
     const { error } = await supabase.from("orders").upsert(rows);
+
     if (error) {
       console.error("Supabase error:", error);
-      return res.status(500).json({ message: "❌ Supabase hatası: " + error.message });
+    } else {
+      console.log("Siparişler başarıyla Supabase'e aktarıldı!");
     }
-
-    return res.status(200).json({ message: "✅ Siparişler başarıyla Supabase'e aktarıldı!" });
   } catch (err) {
     console.error("Hata:", err);
-    return res.status(500).json({ message: "❌ Hata: " + err.message });
   } finally {
     sql.close();
   }
 }
+
+syncData();
