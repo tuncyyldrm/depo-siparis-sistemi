@@ -1,5 +1,3 @@
-// pages/api/sync-sql.js
-
 import sql from "mssql";
 import { createClient } from "@supabase/supabase-js";
 
@@ -25,21 +23,39 @@ export default async function handler(req, res) {
   try {
     const pool = await sql.connect(sqlConfig);
 
+    // Verilen gelişmiş sorgu:
     const result = await pool.request().query(`
-      SELECT TOP 10
-        FISNO,
-        STOK_KODU,
-        STHAR_GCMIK,
-        STHAR_BF,
-        STHAR_SATISK,
-        STHAR_CARIKOD
-      FROM TBLSIPATRA
-      ORDER BY FISNO DESC
+      ;WITH SonFisler AS (
+        SELECT DISTINCT TOP 10 FISNO
+        FROM TBLSIPATRA
+        ORDER BY FISNO DESC
+      ),
+      DepoMiktar AS (
+        SELECT 
+          STOK_KODU,
+          SUM(ISNULL(TOP_GIRIS_MIK, 0)) - SUM(ISNULL(TOP_CIKIS_MIK, 0)) AS DEPO_MIKTAR
+        FROM TBLSTOKPH
+        GROUP BY STOK_KODU
+      )
+      SELECT 
+        p.STOK_KODU,
+        p.FISNO,
+        CAST(p.STHAR_GCMIK AS DECIMAL(18,0)) AS STHAR_GCMIK,
+        CAST(p.STHAR_BF AS DECIMAL(18,0)) AS STHAR_BF,
+        p.STHAR_SATISK,
+        p.STHAR_CARIKOD,
+        s.KOD_5,
+        CAST(ISNULL(d.DEPO_MIKTAR, 0) AS DECIMAL(18,0)) AS DEPO_MIKTAR
+      FROM TBLSIPATRA p
+      INNER JOIN SonFisler sf ON p.FISNO = sf.FISNO
+      LEFT JOIN TBLSTSABIT s ON p.STOK_KODU = s.STOK_KODU
+      LEFT JOIN DepoMiktar d ON p.STOK_KODU = d.STOK_KODU
+      ORDER BY p.FISNO DESC, p.STOK_KODU;
     `);
 
     const rows = result.recordset;
 
-    // 1️⃣ Önce orders tablosuna fisno-carikod bilgilerini güncelle
+    // orders tablosunu upsert et (fisno ve carikod)
     const uniqueOrders = Array.from(
       new Map(rows.map(row => [row.FISNO, row])).values()
     ).map(order => ({
@@ -49,32 +65,35 @@ export default async function handler(req, res) {
     }));
 
     const { error: orderError } = await supabase.from("orders").upsert(uniqueOrders, {
-      onConflict: 'fisno'
+      onConflict: ['fisno']
     });
     if (orderError) {
       console.error("Orders upsert hatası:", orderError);
       return res.status(500).json({ message: "Supabase orders hatası: " + orderError.message });
     }
 
-    // 2️⃣ Ardından order_items tablosuna kalemleri upsert et
+    // order_items tablosunu upsert et (fisno + stok_kodu + yeni alanlar)
     const orderItems = rows.map(row => ({
       fisno: row.FISNO,
       stok_kodu: row.STOK_KODU,
       sthar_gcmik: row.STHAR_GCMIK,
-      sthar_bf: row.STHAR_BF ? parseFloat(row.STHAR_BF) : null,  // ondalık desteği
+      sthar_bf: row.STHAR_BF,
       sthar_satisk: row.STHAR_SATISK,
       sthar_carikod: row.STHAR_CARIKOD,
-      kod_5: null,
-      depo_miktar: null
+      kod_5: row.KOD_5,
+      depo_miktar: row.DEPO_MIKTAR,
     }));
 
-    const { error: itemsError } = await supabase.from("order_items").upsert(orderItems);
+    const { error: itemsError } = await supabase.from("order_items").upsert(orderItems, {
+      onConflict: ['fisno', 'stok_kodu']
+    });
     if (itemsError) {
       console.error("Order_items upsert hatası:", itemsError);
       return res.status(500).json({ message: "Supabase order_items hatası: " + itemsError.message });
     }
 
     return res.status(200).json({ message: "Siparişler ve kalemler başarıyla Supabase'e aktarıldı!" });
+
   } catch (err) {
     console.error("Hata:", err);
     return res.status(500).json({ message: "Sunucu hatası: " + err.message });
