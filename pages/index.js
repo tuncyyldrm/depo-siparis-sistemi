@@ -267,6 +267,8 @@ export default function Home() {
           }
         }
       `}</style>
+
+  
 <main>
   <h1>📦 Malzeme Toplama Fişi</h1>
   <button onClick={fetchOrders}>🔄 Siparişleri Yenile</button>
@@ -290,102 +292,104 @@ export default function Home() {
   </div>
 
   {selectedFisno && (
-    <>
-      <div className="fis-baslik">📄 FİŞ NO: {selectedFisno}</div>
-      <div>
-        {orders.find(o => o.fisno === selectedFisno)?.order_items.length === 0 && (
-          <p style={{ textAlign: "center", color: "#999" }}>
-            Bu fiş için sipariş bulunamadı.
-          </p>
-        )}
+      <>
+        <div className="fis-baslik">📄 FİŞ NO: {selectedFisno}</div>
+        <div>
+          {orderItems.length === 0 ? (
+            <p style={{ textAlign: "center", color: "#999" }}>
+              Bu fiş için sipariş bulunamadı.
+            </p>
+          ) : (
+            orderItems.map((row, index) => {
+              const stokKodu = (row.STOK_KODU || "").toUpperCase();
+              const temizKod = stokKodu ? temizleStokKodu(stokKodu) : "";
+              const imageUrl = temizKod
+                ? `https://katalog.yigitotomotiv.com/resim/${encodeURIComponent(temizKod)}.jpg`
+                : "";
 
-        {orders
-          .find(o => o.fisno === selectedFisno)
-          ?.order_items.map((row, index) => {
-            const stokKodu = row.STOK_KODU.toUpperCase();
-            const temizKod = temizleStokKodu(row.STOK_KODU);
-            const imageUrl = `https://katalog.yigitotomotiv.com/resim/${encodeURIComponent(temizKod)}.jpg`;
+              let markaClass = "";
+              if (stokKodu.includes("OEM")) markaClass = "marka-oem";
+              else if (stokKodu.includes("RNR")) markaClass = "marka-rnr";
+              else if (stokKodu.includes("PNH")) markaClass = "marka-pnh";
 
-            let markaClass = "";
-            if (stokKodu.includes("OEM")) markaClass = "marka-oem";
-            else if (stokKodu.includes("RNR")) markaClass = "marka-rnr";
-            else if (stokKodu.includes("PNH")) markaClass = "marka-pnh";
+              const isSelected = selections[selectedFisno]?.[index] === true;
 
-            const isSelected = selections[selectedFisno]?.[index] === true;
-
-            return (
-              <div
-                key={`${row.STOK_KODU}_${index}`}
-                className={`item ${isSelected ? "selected" : ""} ${markaClass}`}
-              >
-                <img
-                  src={imageUrl}
-                  alt={row.STOK_KODU}
-                  loading="lazy"
-                  onClick={() => openImgPopup(imageUrl)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") openImgPopup(imageUrl);
-                  }}
-                  aria-label={`${row.STOK_KODU} görselini büyüt`}
-                />
-                <div className="stok-text">
-                  {row.STOK_KODU}
-                  <br />
-                  <small>RAF: {row.KOD_5 || "-"}</small>
-                </div>
-                <div className="miktar-text">
-                  <div style={{ color: "#388e3c" }}>🛒 Sepet:</div>
-                  <div style={{ color: "#388e3c" }}>
-                    {parseFloat(row.STHAR_GCMIK)}
+              return (
+                <div
+                  key={`${row.STOK_KODU ?? index}_${index}`}
+                  className={`item ${isSelected ? "selected" : ""} ${markaClass}`}
+                >
+                  {imageUrl && (
+                    <img
+                      src={imageUrl}
+                      alt={row.STOK_KODU || "Ürün resmi"}
+                      loading="lazy"
+                      onClick={() => openImgPopup(imageUrl)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") openImgPopup(imageUrl);
+                      }}
+                      aria-label={`${row.STOK_KODU || "Ürün"} görselini büyüt`}
+                    />
+                  )}
+                  <div className="stok-text">
+                    {row.STOK_KODU || "-"}
+                    <br />
+                    <small>RAF: {row.KOD_5 || "-"}</small>
                   </div>
-                  <div style={{ color: "#d32f2f" }}>🏬 Depo:</div>
-                  <div style={{ color: "#d32f2f" }}>
-                    {parseFloat(row.DEPO_MIKTAR) || 0}
+                  <div className="miktar-text">
+                    <div style={{ color: "#388e3c" }}>🛒 Sepet:</div>
+                    <div style={{ color: "#388e3c" }}>
+                      {parseFloat(row.STHAR_GCMIK) || 0}
+                    </div>
+                    <div style={{ color: "#d32f2f" }}>🏬 Depo:</div>
+                    <div style={{ color: "#d32f2f" }}>
+                      {parseFloat(row.DEPO_MIKTAR) || 0}
+                    </div>
                   </div>
+                  <input
+                    type="checkbox"
+                    checked={!!isSelected}
+                    onChange={(e) =>
+                      toggleSelection(selectedFisno, index, e.target.checked)
+                    }
+                    aria-label={`Sipariş ${row.STOK_KODU || ""} seçildi`}
+                  />
                 </div>
-                <input
-                  type="checkbox"
-                  checked={!!isSelected}
-                  onChange={(e) =>
-                    toggleSelection(selectedFisno, index, e.target.checked)
-                  }
-                  aria-label={`Sipariş ${row.STOK_KODU} seçildi`}
-                />
-              </div>
-            );
-          })}
-      </div>
+              );
+            })
+          )}
+        </div>
 
-      <div
-        style={{
-          textAlign: "center",
-          marginTop: 16,
-          color: "#2b6cb0",
-          cursor: "pointer",
-          fontWeight: "600",
-          textDecoration: "underline",
-        }}
-        onClick={() => {
-          const cariKod = orders.find(o => o.fisno === selectedFisno)?.order_items[0]?.STHAR_CARIKOD || "";
-          if (cariKod) openCariPopup(cariKod);
-        }}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            const cariKod = orders.find(o => o.fisno === selectedFisno)?.order_items[0]?.STHAR_CARIKOD || "";
+        <div
+          style={{
+            textAlign: "center",
+            marginTop: 16,
+            color: "#2b6cb0",
+            cursor: "pointer",
+            fontWeight: "600",
+            textDecoration: "underline",
+          }}
+          onClick={() => {
+            const cariKod = orderItems[0]?.STHAR_CARIKOD || "";
             if (cariKod) openCariPopup(cariKod);
-          }
-        }}
-        aria-label="Cari bilgilerini aç"
-      >
-        Cari Kodu Göster
-      </div>
-    </>
-  )}
-</main>
+          }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              const cariKod = orderItems[0]?.STHAR_CARIKOD || "";
+              if (cariKod) openCariPopup(cariKod);
+            }
+          }}
+          aria-label="Cari bilgilerini aç"
+        >
+          Cari Kodu Göster
+        </div>
+      </>
+    )}
+  </main>
 
 
     </>
