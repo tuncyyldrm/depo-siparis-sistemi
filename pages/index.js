@@ -125,27 +125,50 @@ function temizleStokKodu(stok) {
           <div>
             <h2>FİŞ NO: {selectedFisno}</h2>
             {orders
-              .find(o => o.fisno === selectedFisno)
-              ?.order_items?.map((item, i) => (
-                <div key={i} style={{ 
-                  border: '1px solid #ccc', 
-                  marginBottom: 10, 
-                  padding: 10, 
-                  borderRadius: 5, 
-                  backgroundColor: selections[selectedFisno]?.[i] ? '#d0f0d0' : '#fff' 
-                }}>
-                  <strong>{item.stok_kodu}</strong><br />
-                  Miktar: {item.sthar_gcmik} | Depo: {item.depo_miktar ?? '-'}<br />
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={!!selections[selectedFisno]?.[i]}
-                      onChange={e => toggleSelection(selectedFisno, i, e.target.checked)}
-                    /> Seçildi
-                  </label>
-                </div>
-              ))
-            }
+  .find(o => o.fisno === selectedFisno)
+  ?.order_items?.map((item, i) => {
+    const temizKod = temizleStokKodu(item.stok_kodu);
+    const imageUrl = `https://katalog.yigitotomotiv.com/resim/${encodeURIComponent(temizKod)}.jpg`;
+    return (
+      <div
+        key={i}
+        style={{
+          border: '1px solid #ccc',
+          marginBottom: 10,
+          padding: 10,
+          borderRadius: 5,
+          backgroundColor: selections[selectedFisno]?.[i] ? '#d0f0d0' : '#fff',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+        }}
+      >
+        <img
+          src={imageUrl}
+          alt={item.stok_kodu}
+          style={{ width: 80, height: 80, objectFit: 'contain', borderRadius: 5 }}
+          onError={e => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = '/placeholder-image.png'; // Resim yoksa alternatif
+          }}
+        />
+        <div>
+          <strong>{item.stok_kodu}</strong>
+          <br />
+          Miktar: {item.sthar_gcmik} | Depo: {item.depo_miktar ?? '-'}
+          <br />
+          <label>
+            <input
+              type="checkbox"
+              checked={!!selections[selectedFisno]?.[i]}
+              onChange={e => toggleSelection(selectedFisno, i, e.target.checked)}
+            />{' '}
+            Seçildi
+          </label>
+        </div>
+      </div>
+    );
+  })}
           </div>
         )}
       </div>
