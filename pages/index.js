@@ -53,7 +53,7 @@ export default function Home() {
 <button
   onClick={async () => {
     try {
-      const response = await fetch('/api/sync-sql.js', { method: 'POST' });
+      const response = await fetch('https://raw.githubusercontent.com/tuncyyldrm/depo-siparis-sistemi/refs/heads/main/pages/api/sync-sql.js', { method: 'POST' });
       if (!response.ok) {
         const text = await response.text();
         alert("Sunucu hatası: " + text);
