@@ -125,7 +125,6 @@ export default function Home() {
         {selectedFisno && (
           <div>
             <h2>FİŞ NO: {selectedFisno}</h2>
-             <span id="cariLink" style="color:blue; text-decoration:underline; cursor:pointer;"></span>
             {orders
               .find(o => o.fisno === selectedFisno)
               ?.order_items?.map((item, i) => {
