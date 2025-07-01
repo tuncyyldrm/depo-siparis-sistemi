@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import '../styles/globals.css';
-
+import '@/styles/globals.css'; // Artık çalışmalı
 
 export default function Home() {
   const [orders, setOrders] = useState([]);
