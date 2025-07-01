@@ -158,12 +158,13 @@ export default function Home() {
                       Miktar: {item.sthar_gcmik} | Depo: {item.depo_miktar ?? '-'}
                       <br />
                       <label>
+                        Seçim: 
                         <input
                           type="checkbox"
                           checked={!!selections[selectedFisno]?.[i]}
                           onChange={e => toggleSelection(selectedFisno, i, e.target.checked)}
                         />{' '}
-                        Seçildi
+                        | Raf: {item.KOD_5}
                       </label>
                     </div>
                   </div>
