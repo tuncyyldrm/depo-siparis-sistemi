@@ -6,32 +6,22 @@ export default function Home() {
   const [selections, setSelections] = useState({});
   const [selectedFisno, setSelectedFisno] = useState('');
   const [status, setStatus] = useState('');
-  const [cariPopup, setCariPopup] = useState({ visible: false, url: '' });
   const [imgPopup, setImgPopup] = useState({ visible: false, src: '', alt: '' });
+  const [cariPopup, setCariPopup] = useState({ visible: false, url: '' });
 
-const regex = new RegExp(
-  `\\b(${cleanTerms.map(term => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`,
-  'gi'
-);
+  const regex = new RegExp(
+    `\\b(${cleanTerms.map(term => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`,
+    'gi'
+  );
 
-function temizleStokKodu(stok) {
-  return stok.replace(regex, '').trim();
-}
+  function temizleStokKodu(stok) {
+    return stok.replace(regex, '').trim();
+  }
 
   useEffect(() => {
     fetchOrders();
     fetchSelections();
   }, []);
-
-  useEffect(() => {
-    function handleKeyDown(e) {
-      if (e.key === 'Escape' && imgPopup.visible) {
-        setImgPopup({ visible: false, src: '', alt: '' });
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [imgPopup.visible]);
 
   const fetchOrders = async () => {
     try {
@@ -107,87 +97,76 @@ function temizleStokKodu(stok) {
   };
 
   return (
-    <main style={{ maxWidth: 800, margin: 'auto', padding: 20, fontFamily: 'Arial, sans-serif' }}>
+    <main className="container">
       <h1>Depo Sipariş Sistemi</h1>
-      <div style={{ marginBottom: 20 }}>
-        <button
-          onClick={handleSync}
-          className="bg-blue-600 text-white p-3 rounded"
-          style={{ marginBottom: 10 }}
-        >
-          🔄 Siparişleri Yenile
-        </button>
-        <br />
-        <label>Fiş Seçiniz: </label>
-        <select
-          value={selectedFisno}
-          onChange={e => setSelectedFisno(e.target.value)}
-          style={{ marginLeft: 10 }}
-        >
-          <option value="">-- Seçiniz --</option>
+
+      <div className="actions">
+        <button onClick={handleSync}>🔄 Siparişleri Yenile</button>
+        <select value={selectedFisno} onChange={e => setSelectedFisno(e.target.value)}>
+          <option value="">-- Fiş Seçiniz --</option>
           {orders.map(order => (
             <option key={order.fisno} value={order.fisno}>{order.fisno}</option>
           ))}
         </select>
       </div>
 
-      <p>{status}</p>
+      <p className="status">{status}</p>
 
       <div>
         {selectedFisno && (() => {
           const selectedOrder = orders.find(o => o.fisno === selectedFisno);
-          const cariKod = selectedOrder?.order_items?.[0]?.sthar_carikod ?? "-";
+          if (!selectedOrder) return <p>Seçili fiş bulunamadı.</p>;
+
           return (
             <div>
               <h2>FİŞ NO: {selectedFisno}</h2>
-              <div>
+              <div className="cari-box">
+                <strong>Cari Kod:</strong>{' '}
                 <span
-                  style={{ color: 'blue', textDecoration: 'underline', cursor: 'pointer', fontWeight: 'bold' }}
-                  onClick={() =>
-                    setCariPopup({
-                      visible: true,
-                      url: `https://katalog.yigitotomotiv.com/etiket/cari?arama=${encodeURIComponent(cariKod)}`
-                    })
-                  }
+                  className="cari-link"
+                  onClick={() => setCariPopup({
+                    visible: true,
+                    url: `https://katalog.yigitotomotiv.com/etiket/cari?arama=${encodeURIComponent(selectedOrder?.order_items?.[0]?.sthar_carikod ?? '')}`
+                  })}
                 >
-                  Cari Kod: {cariKod}
+                  {selectedOrder?.order_items?.[0]?.sthar_carikod ?? '—'}
                 </span>
               </div>
-              {selectedOrder?.order_items?.map((item, i) => {
+
+              {selectedOrder.order_items?.map((item, i) => {
                 const temizKod = temizleStokKodu(item.stok_kodu);
                 const imageUrl = `https://katalog.yigitotomotiv.com/resim/${encodeURIComponent(temizKod)}.jpg`;
+
+                const stokKodu = item.stok_kodu.toUpperCase();
+                let markaClass = '';
+                if (stokKodu.includes("OEM")) markaClass = 'marka-oem';
+                else if (stokKodu.includes("RNR")) markaClass = 'marka-rnr';
+                else if (stokKodu.includes("PNH")) markaClass = 'marka-pnh';
+
                 return (
                   <div
                     key={i}
-                    style={{
-                      border: '1px solid #ccc',
-                      marginBottom: 10,
-                      padding: 10,
-                      borderRadius: 5,
-                      backgroundColor: selections[selectedFisno]?.[i] ? '#d0f0d0' : '#fff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                    }}
+                    className={`item-card ${selections[selectedFisno]?.[i] ? 'selected' : ''} ${markaClass}`}
                   >
                     <img
                       src={imageUrl}
                       alt={item.stok_kodu}
-                      style={{ width: 80, height: 80, objectFit: 'contain', borderRadius: 5, cursor: 'zoom-in' }}
                       onClick={() => setImgPopup({ visible: true, src: imageUrl, alt: item.stok_kodu })}
                       onError={e => {
                         e.currentTarget.onerror = null;
                         e.currentTarget.src = '/placeholder-image.png';
                       }}
                     />
-                    <div>
-                      <strong>{item.stok_kodu}</strong>
-                      <br />
-                      Miktar: {item.sthar_gcmik} | Depo: {item.depo_miktar ?? '-'}
-                      <br />
-                      Raf: {item.KOD_5 ?? '-'}
-                      <br />
-                      <label>
+                    <div className="info">
+                      <div className="stok-info">{item.stok_kodu}</div>
+                      <div className="stok-details">
+                        Miktar: {item.sthar_gcmik} | Depo: {item.depo_miktar ?? '-'} <br />
+                        Raf: {item.KOD_5 ?? '-'}
+                      </div>
+                      {item.depo_miktar !== undefined && item.depo_miktar < 5 && (
+                        <span className="status-badge">Stok Az</span>
+                      )}
+                      <label className="checkbox">
                         <input
                           type="checkbox"
                           checked={!!selections[selectedFisno]?.[i]}
@@ -205,24 +184,22 @@ function temizleStokKodu(stok) {
 
       {/* Cari popup */}
       {cariPopup.visible && (
-        <div style={{
-          display: 'flex',
-          position: 'fixed',
-          top: 0, left: 0, width: '100vw', height: '100vh',
-          background: 'rgba(0,0,0,0.8)', zIndex: 9999,
-          justifyContent: 'center', alignItems: 'center'
-        }}>
-          <div style={{
-            width: '90vw', height: '85vh', background: 'white',
-            borderRadius: 10, position: 'relative', overflow: 'hidden'
-          }}>
+        <div
+          className="popup-overlay"
+          onClick={() => setCariPopup({ visible: false, url: '' })}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Cari Bilgi Popup"
+        >
+          <div className="popup-content" onClick={e => e.stopPropagation()}>
             <button
+              className="popup-close"
               onClick={() => setCariPopup({ visible: false, url: '' })}
-              style={{ position: 'absolute', top: 10, right: 10, zIndex: 10, background: 'red', color: 'white', border: 'none', borderRadius: 5, padding: '6px 10px', cursor: 'pointer' }}
+              aria-label="Popup kapat"
             >
-              Kapat
+              ✖
             </button>
-            <iframe src={cariPopup.url} style={{ width: '100%', height: '100%', border: 'none' }} />
+            <iframe src={cariPopup.url} title="Cari Bilgi" />
           </div>
         </div>
       )}
@@ -230,54 +207,16 @@ function temizleStokKodu(stok) {
       {/* Resim büyütme popup */}
       {imgPopup.visible && (
         <div
+          className="popup-overlay"
+          onClick={() => setImgPopup({ visible: false, src: '', alt: '' })}
           role="dialog"
           aria-modal="true"
           aria-label="Büyük resim görüntüleme"
-          tabIndex={-1}
-          onClick={e => {
-            // Eğer dışa tıklanırsa popup kapanır
-            if (e.target === e.currentTarget) {
-              setImgPopup({ visible: false, src: '', alt: '' });
-            }
-          }}
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            position: 'fixed',
-            top: 0, left: 0,
-            width: '100vw',
-            height: '100vh',
-            background: 'rgba(0,0,0,0.8)',
-            zIndex: 9999,
-            cursor: 'pointer',
-          }}
         >
-          <img
-            src={imgPopup.src}
-            alt={imgPopup.alt}
-            style={{
-              maxWidth: '90vw',
-              maxHeight: '90vh',
-              borderRadius: 10,
-              cursor: 'auto',
-            }}
-            onClick={e => e.stopPropagation()} // resim tıklaması popupı kapatma
-          />
+          <img src={imgPopup.src} alt={imgPopup.alt} className="popup-image" onClick={e => e.stopPropagation()} />
           <button
+            className="popup-close"
             onClick={() => setImgPopup({ visible: false, src: '', alt: '' })}
-            style={{
-              position: 'absolute',
-              top: 20,
-              right: 20,
-              background: 'red',
-              color: 'white',
-              border: 'none',
-              borderRadius: 5,
-              padding: '6px 10px',
-              cursor: 'pointer',
-              zIndex: 10000,
-            }}
             aria-label="Resim popup kapat"
           >
             ✖
