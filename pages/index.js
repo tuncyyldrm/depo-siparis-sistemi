@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import cleanTerms from '../data/cleanTerms';
 
 export default function Home() {
   const [orders, setOrders] = useState([]);
