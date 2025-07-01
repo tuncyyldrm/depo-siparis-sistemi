@@ -1,11 +1,14 @@
 {
   "name": "depo-siparis-sistemi",
   "version": "1.0.0",
+  "description": "SQL Server siparişlerini Supabase'e senkronize eden ve depo sipariş yönetimi sunan Next.js uygulaması",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "sync-data": "node sql-server-to-supabase.js"
+    "sync-data": "node sql-server-to-supabase.js",
+    "lint": "next lint",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.0.0",
@@ -13,5 +16,8 @@
     "next": "13.4.7",
     "react": "18.2.0",
     "react-dom": "18.2.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.2.5"
   }
 }
