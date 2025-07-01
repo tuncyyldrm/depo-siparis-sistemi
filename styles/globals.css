@@ -1,15 +1,11 @@
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  margin: 0;
-  padding: 0;
-  background: #f7f9fc;
-  color: #333;
-}
-
-main {
+/* Genel container */
+.container {
   max-width: 900px;
   margin: 0 auto;
   padding: 1rem;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #f7f9fc;
+  color: #333;
 }
 
 h1 {
@@ -24,13 +20,20 @@ h2 {
   color: #111827;
 }
 
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
 button {
   background-color: #2563eb;
   color: white;
-  padding: 0.75rem 1.25rem;
+  padding: 0.65rem 1.05rem;
   border: none;
   border-radius: 0.5rem;
-  font-size: 1rem;
+  font-size: 0.8rem;
   cursor: pointer;
   transition: background 0.3s;
 }
@@ -46,6 +49,23 @@ select {
   border: 1px solid #cbd5e1;
 }
 
+.status {
+  margin-bottom: 1rem;
+  font-style: italic;
+  color: #666;
+}
+
+.cari-box {
+  margin-bottom: 1rem;
+}
+
+.cari-link {
+  color: #2563eb;
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
 .item-card {
   background: white;
   border: 1px solid #e5e7eb;
@@ -57,43 +77,125 @@ select {
   align-items: center;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   transition: transform 0.2s;
+  position: relative;
 }
 
 .item-card:hover {
   transform: scale(1.01);
 }
 
+.item-card.selected {
+  background-color: #d0f0d0;
+}
+
 .item-card img {
-  width: 80px;
-  height: 80px;
+  width: 95px;
   object-fit: contain;
   border-radius: 0.5rem;
   flex-shrink: 0;
+  cursor: pointer;
+  user-select: none;
 }
 
-.item-card div {
+.info {
   flex-grow: 1;
 }
 
-.item-card input[type="checkbox"] {
-  transform: scale(1.3);
+.stok-info {
+  font-weight: 600;
+  font-size: 1.1rem;
 }
 
+.stok-details {
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 0.3rem;
+}
+
+.status-badge {
+  background-color: #f87171;
+  color: white;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: 0.4rem;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.checkbox input[type="checkbox"] {
+  transform: scale(1.3);
+  margin-right: 0.3rem;
+  cursor: pointer;
+}
+
+/* Marka renkleri */
+.marka-oem {
+  background-color: #e6f4ea; /* yeşilimsi */
+  border-left: 6px solid #34a853;
+}
+
+.marka-rnr {
+  background-color: #e8f0fe; /* mavimsi */
+  border-left: 6px solid #4285f4;
+}
+
+.marka-pnh {
+  background-color: #fff4e5; /* turuncumsu */
+  border-left: 6px solid #fbbc04;
+}
+
+/* Popup stili */
 .popup-overlay {
-  display: none;
+  display: flex;
   justify-content: center;
   align-items: center;
   position: fixed;
   top: 0; left: 0; width: 100vw; height: 100vh;
   background: rgba(0,0,0,0.8);
   z-index: 9999;
+  cursor: pointer;
+}
+
+.popup-image {
+  max-width: 90vw;
+  max-height: 90vh;
+  border-radius: 10px;
+  cursor: auto;
+  user-select: none;
+}
+
+.popup-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: red;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 1rem;
+  z-index: 10000;
+}
+
+.popup-overlay {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.8);
+  z-index: 9999;
+  cursor: pointer;
 }
 
 .popup-content {
   width: 90vw;
   height: 85vh;
   background: white;
-  border-radius: 0.75rem;
+  border-radius: 10px;
   position: relative;
   overflow: hidden;
 }
@@ -106,41 +208,14 @@ select {
 
 .popup-close {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
-  z-index: 10;
+  top: 10px;
+  right: 10px;
+  z-index: 10000;
   background: red;
   color: white;
   border: none;
-  border-radius: 0.4rem;
-  padding: 0.5rem 0.75rem;
+  border-radius: 5px;
+  padding: 6px 10px;
   cursor: pointer;
   font-size: 1rem;
-}
-
-@media screen and (max-width: 768px) {
-  main {
-    padding: 0.75rem;
-  }
-  h1 { font-size: 1.5rem; }
-  h2 { font-size: 1.25rem; }
-  button { font-size: 0.9rem; padding: 0.6rem 1rem; }
-  .item-card {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .item-card img {
-    width: 100%;
-    height: auto;
-  }
-}
-
-@media screen and (max-width: 480px) {
-  .popup-content {
-    width: 95vw;
-    height: 80vh;
-  }
-  .popup-close {
-    font-size: 0.9rem;
-  }
 }
