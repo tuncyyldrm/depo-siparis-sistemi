@@ -6,6 +6,7 @@ export default function Home() {
   const [selectedFisno, setSelectedFisno] = useState('');
   const [status, setStatus] = useState('');
   const [cariPopup, setCariPopup] = useState({ visible: false, url: '' });
+  const [imgPopup, setImgPopup] = useState({ visible: false, src: '', alt: '' });
 
   function temizleStokKodu(stok) {
     return stok.replace(
@@ -18,6 +19,16 @@ export default function Home() {
     fetchOrders();
     fetchSelections();
   }, []);
+
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === 'Escape' && imgPopup.visible) {
+        setImgPopup({ visible: false, src: '', alt: '' });
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [imgPopup.visible]);
 
   const fetchOrders = async () => {
     try {
@@ -160,17 +171,10 @@ export default function Home() {
                       src={imageUrl}
                       alt={item.stok_kodu}
                       style={{ width: 80, height: 80, objectFit: 'contain', borderRadius: 5, cursor: 'zoom-in' }}
-                      onClick={() => {
-                        const imgPopup = document.getElementById("imgPopup");
-                        const popupImg = imgPopup.querySelector("img");
-                        popupImg.src = imageUrl;
-                        popupImg.alt = item.stok_kodu;
-                        imgPopup.style.display = "flex";
-                        popupImg.focus();
-                      }}
+                      onClick={() => setImgPopup({ visible: true, src: imageUrl, alt: item.stok_kodu })}
                       onError={e => {
                         e.currentTarget.onerror = null;
-                        e.currentTarget.src = '/placeholder-image.png'; // Yoksa alternatif görsel
+                        e.currentTarget.src = '/placeholder-image.png';
                       }}
                     />
                     <div>
@@ -221,14 +225,62 @@ export default function Home() {
       )}
 
       {/* Resim büyütme popup */}
-      <div id="imgPopup" role="dialog" aria-modal="true" tabIndex="-1" aria-label="Büyük resim görüntüleme"
-        style={{
-          display: 'none', justifyContent: 'center', alignItems: 'center',
-          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-          background: 'rgba(0,0,0,0.8)', zIndex: 9999
-        }}>
-        <img src="" alt="Büyük resim" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 10 }} />
-      </div>
+      {imgPopup.visible && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Büyük resim görüntüleme"
+          tabIndex={-1}
+          onClick={e => {
+            // Eğer dışa tıklanırsa popup kapanır
+            if (e.target === e.currentTarget) {
+              setImgPopup({ visible: false, src: '', alt: '' });
+            }
+          }}
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            position: 'fixed',
+            top: 0, left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0,0,0,0.8)',
+            zIndex: 9999,
+            cursor: 'pointer',
+          }}
+        >
+          <img
+            src={imgPopup.src}
+            alt={imgPopup.alt}
+            style={{
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              borderRadius: 10,
+              cursor: 'auto',
+            }}
+            onClick={e => e.stopPropagation()} // resim tıklaması popupı kapatma
+          />
+          <button
+            onClick={() => setImgPopup({ visible: false, src: '', alt: '' })}
+            style={{
+              position: 'absolute',
+              top: 20,
+              right: 20,
+              background: 'red',
+              color: 'white',
+              border: 'none',
+              borderRadius: 5,
+              padding: '6px 10px',
+              cursor: 'pointer',
+              zIndex: 10000,
+            }}
+            aria-label="Resim popup kapat"
+          >
+            ✖
+          </button>
+        </div>
+      )}
     </main>
   );
 }
