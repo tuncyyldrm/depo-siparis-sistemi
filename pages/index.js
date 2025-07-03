@@ -23,6 +23,14 @@ export default function Home() {
     fetchSelections();
   }, []);
 
+  useEffect(() => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const fisnoFromUrl = urlParams.get('fisno');
+  if (fisnoFromUrl) setSelectedFisno(fisnoFromUrl);
+}, []);
+
+
+  
   const fetchOrders = async () => {
     try {
       setStatus('Siparişler yükleniyor...');
