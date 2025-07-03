@@ -104,13 +104,27 @@ export default function Home() {
     }
   };
 
+
+  const handleFisnoChange = (value) => {
+  setSelectedFisno(value);
+
+  const newUrl = new URL(window.location);
+  if (value) {
+    newUrl.searchParams.set('fisno', value);
+  } else {
+    newUrl.searchParams.delete('fisno');
+  }
+  window.history.pushState({}, '', newUrl);
+};
+
+  
   return (
     <main className="container">
       <h1>Depo Sipariş Sistemi</h1>
 
       <div className="actions">
         <button onClick={handleSync}>🔄 Siparişleri Yenile</button>
-        <select value={selectedFisno} onChange={e => setSelectedFisno(e.target.value)}>
+        <select value={selectedFisno} onChange={e => handleFisnoChange(e.target.value)}>
           <option value="">-- Fiş Seçiniz --</option>
           {orders.map(order => (
             <option key={order.fisno} value={order.fisno}>{order.fisno}</option>
