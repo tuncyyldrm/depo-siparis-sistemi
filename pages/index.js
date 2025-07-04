@@ -142,7 +142,7 @@ const handleShare = () => {
       <h1>Depo Sipariş Sistemi</h1>
 
 <div className="actions">
-  <button onClick={handleSync}>🔄 Siparişleri Yenile</button>
+  <button onClick={handleSync}>Yenile</button>
   <select value={selectedFisno} onChange={e => handleFisnoChange(e.target.value)}>
     <option value="">-- Fiş Seçiniz --</option>
     {orders.map(order => (
@@ -150,7 +150,7 @@ const handleShare = () => {
     ))}
   </select>
   {selectedFisno && (
-    <button onClick={handleShare}>📤 Paylaş</button>
+    <button onClick={handleShare}>Paylaş</button>
   )}
 </div>
 
@@ -204,7 +204,7 @@ const handleShare = () => {
                     <div className="info">
                       <div className="stok-info">{item.stok_kodu}</div>
                       <div className="stok-details">
-                        Miktar: {item.sthar_gcmik} | Depo: {item.depo_miktar ?? '-'} <br />
+                        <div className="stok-Miktar">🛒Miktar: {item.sthar_gcmik} </div> |<div className="stok-Depo"> 🏬Depo: {item.depo_miktar ?? '-'} </div> <br />
                         Raf: {item.KOD_5 ?? '-'}
                       </div>
                       {item.depo_miktar !== undefined && item.depo_miktar < 5 && (
