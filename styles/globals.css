@@ -23,14 +23,15 @@ h2 {
 .actions {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
 }
 
 button {
   background-color: #2563eb;
   color: white;
-  padding: 0.65rem 1.05rem;
+  padding: .50rem 0.30rem;
   border: none;
   border-radius: 0.5rem;
   font-size: 0.8rem;
