@@ -204,7 +204,7 @@ const handleShare = () => {
                     <div className="info">
                       <div className="stok-info">{item.stok_kodu}</div>
                       <div className="stok-details">
-                        <div className="stok-Miktar">🛒Miktar: {item.sthar_gcmik} </div> |<div className="stok-Depo"> 🏬Depo: {item.depo_miktar ?? '-'} </div> <br />
+                        🛒Miktar: {item.sthar_gcmik} | 🏬Depo: {item.depo_miktar ?? '-'} <br />
                         Raf: {item.KOD_5 ?? '-'}
                       </div>
                       {item.depo_miktar !== undefined && item.depo_miktar < 5 && (
