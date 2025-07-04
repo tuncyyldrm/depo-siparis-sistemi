@@ -104,6 +104,25 @@ export default function Home() {
     }
   };
 
+const handleShare = () => {
+  const shareUrl = window.location.href;
+
+  if (navigator.share) {
+    navigator.share({
+      title: `Fiş No: ${selectedFisno}`,
+      text: `Depo hazırlık için fiş: ${selectedFisno}`,
+      url: shareUrl,
+    }).catch((error) => {
+      console.error('Paylaşım hatası:', error);
+      alert('Paylaşım iptal edildi veya desteklenmiyor.');
+    });
+  } else {
+    // Web Share API yoksa kopyala
+    navigator.clipboard.writeText(shareUrl)
+      .then(() => alert('Link kopyalandı!'))
+      .catch((err) => alert('Link kopyalanamadı: ' + err));
+  }
+};
 
   const handleFisnoChange = (value) => {
   setSelectedFisno(value);
@@ -122,15 +141,18 @@ export default function Home() {
     <main className="container">
       <h1>Depo Sipariş Sistemi</h1>
 
-      <div className="actions">
-        <button onClick={handleSync}>🔄 Siparişleri Yenile</button>
-        <select value={selectedFisno} onChange={e => handleFisnoChange(e.target.value)}>
-          <option value="">-- Fiş Seçiniz --</option>
-          {orders.map(order => (
-            <option key={order.fisno} value={order.fisno}>{order.fisno}</option>
-          ))}
-        </select>
-      </div>
+<div className="actions">
+  <button onClick={handleSync}>🔄 Siparişleri Yenile</button>
+  <select value={selectedFisno} onChange={e => handleFisnoChange(e.target.value)}>
+    <option value="">-- Fiş Seçiniz --</option>
+    {orders.map(order => (
+      <option key={order.fisno} value={order.fisno}>{order.fisno}</option>
+    ))}
+  </select>
+  {selectedFisno && (
+    <button onClick={handleShare}>📤 Paylaş</button>
+  )}
+</div>
 
       <p className="status">{status}</p>
 
