@@ -15,14 +15,10 @@ const sqlConfig = {
   }
 };
 
-// fisno değerlerini temizleyen fonksiyon
 function temizleFisno(fisno) {
-  if (!fisno) return "";
   return fisno
-    .toString()
-    .trim()
-    .replace(/\s+/g, "")       // tüm boşlukları kaldır
-    .replace(/[^\w\-]/g, "");  // sadece harf, rakam, _ ve - bırak
+    ? fisno.toString().trim().replace(/\s+/g, "").replace(/[^\w\-]/g, "")
+    : "";
 }
 
 export default async function handler(req, res) {
@@ -30,10 +26,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: "Method not allowed" });
   }
 
+  let pool;
   try {
-    const pool = await sql.connect(sqlConfig);
+    pool = await sql.connect(sqlConfig);
 
-    // Son 10 fişi ve depo miktarları çek
     const result = await pool.request().query(`
       ;WITH SonFisler AS (
         SELECT DISTINCT TOP 10 FISNO
@@ -65,17 +61,14 @@ export default async function handler(req, res) {
 
     const rows = result.recordset;
 
-    // Unique orders, fisno temizleniyor ve geçerlilik kontrolü yapılıyor
+    // Unique orders (fisno'ya göre benzersiz)
     const uniqueOrders = Array.from(
       new Map(rows.map(row => [temizleFisno(row.FISNO), row])).values()
-    ).map(order => {
-      const cleanedFisno = temizleFisno(order.FISNO);
-      return {
-        fisno: cleanedFisno,
-        carikod: order.STHAR_CARIKOD || null,
-        created_at: new Date().toISOString(),
-      };
-    }).filter(o => o.fisno.length > 0);
+    ).map(order => ({
+      fisno: temizleFisno(order.FISNO),
+      carikod: order.STHAR_CARIKOD || null,
+      created_at: new Date().toISOString(),
+    })).filter(o => o.fisno);
 
     // Upsert orders
     const { error: orderError } = await supabase.from("orders").upsert(uniqueOrders, {
@@ -87,19 +80,16 @@ export default async function handler(req, res) {
     }
 
     // Upsert order_items
-    const orderItems = rows.map(row => {
-      const cleanedFisno = temizleFisno(row.FISNO);
-      return {
-        fisno: cleanedFisno,
-        stok_kodu: row.STOK_KODU,
-        sthar_gcmik: row.STHAR_GCMIK,
-        sthar_bf: row.STHAR_BF,
-        sthar_satisk: row.STHAR_SATISK,
-        sthar_carikod: row.STHAR_CARIKOD,
-        kod_5: row.KOD_5,
-        depo_miktar: row.DEPO_MIKTAR,
-      };
-    }).filter(item => item.fisno.length > 0);
+    const orderItems = rows.map(row => ({
+      fisno: temizleFisno(row.FISNO),
+      stok_kodu: row.STOK_KODU,
+      sthar_gcmik: row.STHAR_GCMIK,
+      sthar_bf: row.STHAR_BF,
+      sthar_satisk: row.STHAR_SATISK,
+      sthar_carikod: row.STHAR_CARIKOD,
+      kod_5: row.KOD_5,
+      depo_miktar: row.DEPO_MIKTAR,
+    })).filter(item => item.fisno);
 
     const { error: itemsError } = await supabase.from("order_items").upsert(orderItems, {
       onConflict: ['fisno', 'stok_kodu']
@@ -109,31 +99,61 @@ export default async function handler(req, res) {
       return res.status(500).json({ message: "Supabase order_items hatası: " + itemsError.message });
     }
 
-    // Silme için fisnoları hazırla
-    const latestFisnos = uniqueOrders.map(o => o.fisno);
-
+    const latestFisnos = uniqueOrders.map(o => o.fisno).filter(Boolean);
     console.log("Supabase'te tutulacak son 10 fiş:", latestFisnos);
 
-    // Eski kayıtları sil, ancak latestFisnos boşsa silme işlemi yapma
     if (latestFisnos.length > 0) {
-      const { error: deleteOldOrdersError } = await supabase
-        .from('orders')
-        .delete()
-        .not('fisno', 'in', latestFisnos);
+      // latestFisnos dizisini Set olarak oluştur
+      const latestFisnoSet = new Set(latestFisnos);
 
-      if (deleteOldOrdersError) {
-        console.error("Eski orders silme hatası:", deleteOldOrdersError);
-        return res.status(500).json({ message: "Supabase orders silme hatası: " + deleteOldOrdersError.message });
+      // Orders tablosundaki tüm fisnoları çek
+      const { data: allOrders, error: fetchError } = await supabase
+        .from("orders")
+        .select("fisno");
+
+      if (fetchError) {
+        console.error("Orders listeleme hatası:", fetchError);
+        return res.status(500).json({ message: "Orders listeleme hatası: " + fetchError.message });
       }
 
-      const { error: deleteOldItemsError } = await supabase
-        .from('order_items')
-        .delete()
-        .not('fisno', 'in', latestFisnos);
+      // Silinecek fisnoları bul (son 10 dışındakiler)
+      const fisnosToDelete = allOrders
+        .map(o => o.fisno)
+        .filter(fis => !latestFisnoSet.has(fis));
 
-      if (deleteOldItemsError) {
-        console.error("Eski order_items silme hatası:", deleteOldItemsError);
-        return res.status(500).json({ message: "Supabase order_items silme hatası: " + deleteOldItemsError.message });
+      if (fisnosToDelete.length > 0) {
+        // orders sil
+        const { error: deleteOrdersError } = await supabase
+          .from("orders")
+          .delete()
+          .in("fisno", fisnosToDelete);
+
+        if (deleteOrdersError) {
+          console.error("Orders silme hatası:", deleteOrdersError);
+          return res.status(500).json({ message: "Orders silme hatası: " + deleteOrdersError.message });
+        }
+
+        // order_items sil
+        const { error: deleteItemsError } = await supabase
+          .from("order_items")
+          .delete()
+          .in("fisno", fisnosToDelete);
+
+        if (deleteItemsError) {
+          console.error("Order_items silme hatası:", deleteItemsError);
+          return res.status(500).json({ message: "Order_items silme hatası: " + deleteItemsError.message });
+        }
+
+        // order_item_selections sil
+        const { error: deleteSelectionsError } = await supabase
+          .from("order_item_selections")
+          .delete()
+          .in("fisno", fisnosToDelete);
+
+        if (deleteSelectionsError) {
+          console.error("Order_item_selections silme hatası:", deleteSelectionsError);
+          return res.status(500).json({ message: "Order_item_selections silme hatası: " + deleteSelectionsError.message });
+        }
       }
     } else {
       console.warn("latestFisnos dizisi boş, silme işlemi atlandı.");
@@ -145,6 +165,6 @@ export default async function handler(req, res) {
     console.error("Hata:", err);
     return res.status(500).json({ message: "Sunucu hatası: " + err.message });
   } finally {
-    sql.close();
+    if (pool) await pool.close();
   }
 }
