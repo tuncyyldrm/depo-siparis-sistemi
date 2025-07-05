@@ -23,7 +23,7 @@ export default async function handler(req, res) {
   try {
     const pool = await sql.connect(sqlConfig);
 
-    // Verilen gelişmiş sorgu:
+    // SQL'den son 10 fişi çek
     const result = await pool.request().query(`
       ;WITH SonFisler AS (
         SELECT DISTINCT TOP 10 FISNO
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
 
     const rows = result.recordset;
 
-    // orders tablosunu upsert et (fisno ve carikod)
+    // orders tablosunu upsert et
     const uniqueOrders = Array.from(
       new Map(rows.map(row => [row.FISNO, row])).values()
     ).map(order => ({
@@ -72,7 +72,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ message: "Supabase orders hatası: " + orderError.message });
     }
 
-    // order_items tablosunu upsert et (fisno + stok_kodu + yeni alanlar)
+    // order_items tablosunu upsert et
     const orderItems = rows.map(row => ({
       fisno: row.FISNO,
       stok_kodu: row.STOK_KODU,
@@ -92,7 +92,41 @@ export default async function handler(req, res) {
       return res.status(500).json({ message: "Supabase order_items hatası: " + itemsError.message });
     }
 
-    return res.status(200).json({ message: "Siparişler ve kalemler başarıyla Supabase'e aktarıldı!" });
+    // Supabase'teki eski fişleri temizle: sadece son 10 fişi tut
+    const latestFisnos = uniqueOrders.map(o => o.fisno);
+    console.log("Supabase'te tutulacak son 10 fiş:", latestFisnos);
+
+    const { error: deleteOldOrdersError } = await supabase
+      .from('orders')
+      .delete()
+      .not('fisno', 'in', latestFisnos);
+
+    if (deleteOldOrdersError) {
+      console.error("Eski orders silme hatası:", deleteOldOrdersError);
+      return res.status(500).json({ message: "Supabase orders silme hatası: " + deleteOldOrdersError.message });
+    }
+
+    const { error: deleteOldItemsError } = await supabase
+      .from('order_items')
+      .delete()
+      .not('fisno', 'in', latestFisnos);
+
+    if (deleteOldItemsError) {
+      console.error("Eski order_items silme hatası:", deleteOldItemsError);
+      return res.status(500).json({ message: "Supabase order_items silme hatası: " + deleteOldItemsError.message });
+    }
+
+    const { error: deleteOldSelectionsError } = await supabase
+      .from('order_item_selections')
+      .delete()
+      .not('fisno', 'in', latestFisnos);
+
+    if (deleteOldSelectionsError) {
+      console.error("Eski selections silme hatası:", deleteOldSelectionsError);
+      return res.status(500).json({ message: "Supabase selections silme hatası: " + deleteOldSelectionsError.message });
+    }
+
+    return res.status(200).json({ message: "Siparişler başarıyla güncellendi, eski fişler ve seçimler temizlendi!" });
 
   } catch (err) {
     console.error("Hata:", err);
