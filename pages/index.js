@@ -203,20 +203,25 @@ const handleShare = () => {
                     />
                     <div className="info">
                       <div className="stok-info">{item.stok_kodu}</div>
-                      <div className="stok-details">
-                        🛒Miktar: {item.sthar_gcmik} | 🏬Depo: {item.depo_miktar ?? '-'} <br />
-                        Raf: {item.KOD_5 ?? '-'}
-                      </div>
+						<div className="stok-details p-2 border rounded-md bg-gray-50">
+						  <div className="flex flex-wrap gap-x-4 gap-y-1 mb-2 text-sm text-gray-800">
+							<div><strong>Miktar:</strong> {item.sthar_gcmik}</div>
+							<div><strong>Depo:</strong> {item.depo_miktar ?? '-'}</div>
+						  </div>
+						  <label className="flex flex-wrap gap-x-4 gap-y-1 mb-2 text-sm text-gray-800">
+							<div><strong>Raf:</strong> {item.KOD_5 ?? '-'}</div>
+							<input
+							  type="checkbox"
+							  checked={!!selections[selectedFisno]?.[i]}
+							  onChange={e => toggleSelection(selectedFisno, i, e.target.checked)}
+							  className="h-4 w-4"
+							/>
+							<span>Seçim</span>
+						  </label>
+						</div>
                       {item.depo_miktar !== undefined && item.depo_miktar < 5 && (
                         <span className="status-badge">Stok Az</span>
                       )}
-                      <label className="checkbox">
-                        <input
-                          type="checkbox"
-                          checked={!!selections[selectedFisno]?.[i]}
-                          onChange={e => toggleSelection(selectedFisno, i, e.target.checked)}
-                        /> Seçildi
-                      </label>
                     </div>
                   </div>
                 );
