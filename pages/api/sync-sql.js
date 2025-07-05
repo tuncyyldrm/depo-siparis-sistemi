@@ -23,7 +23,7 @@ export default async function handler(req, res) {
   try {
     const pool = await sql.connect(sqlConfig);
 
-    // SQL sorgusu: son 10 fişi çek ve depo miktar hesapla
+    // Son 10 fişi ve depo miktarları çek
     const result = await pool.request().query(`
       ;WITH SonFisler AS (
         SELECT DISTINCT TOP 10 FISNO
@@ -55,16 +55,19 @@ export default async function handler(req, res) {
 
     const rows = result.recordset;
 
-    // Unique siparişleri oluştur
+    // Unique orders: fisno kesin temizlenmiş ve regex ile doğrulanmış
     const uniqueOrders = Array.from(
       new Map(rows.map(row => [row.FISNO, row])).values()
-    ).map(order => ({
-      fisno: order.FISNO.trim(), // trim ekledim
-      carikod: order.STHAR_CARIKOD || null,
-      created_at: new Date().toISOString(),
-    }));
+    ).map(order => {
+      const cleanedFisno = (order.FISNO || '').trim();
+      return {
+        fisno: cleanedFisno,
+        carikod: order.STHAR_CARIKOD || null,
+        created_at: new Date().toISOString(),
+      };
+    }).filter(o => /^[\w\d\-]+$/.test(o.fisno)); // sadece izin verilen karakterler
 
-    // orders tablosuna upsert
+    // Upsert orders
     const { error: orderError } = await supabase.from("orders").upsert(uniqueOrders, {
       onConflict: ['fisno']
     });
@@ -73,17 +76,20 @@ export default async function handler(req, res) {
       return res.status(500).json({ message: "Supabase orders hatası: " + orderError.message });
     }
 
-    // order_items tablosuna upsert
-    const orderItems = rows.map(row => ({
-      fisno: row.FISNO.trim(),
-      stok_kodu: row.STOK_KODU,
-      sthar_gcmik: row.STHAR_GCMIK,
-      sthar_bf: row.STHAR_BF,
-      sthar_satisk: row.STHAR_SATISK,
-      sthar_carikod: row.STHAR_CARIKOD,
-      kod_5: row.KOD_5,
-      depo_miktar: row.DEPO_MIKTAR,
-    }));
+    // Upsert order_items
+    const orderItems = rows.map(row => {
+      const cleanedFisno = (row.FISNO || '').trim();
+      return {
+        fisno: cleanedFisno,
+        stok_kodu: row.STOK_KODU,
+        sthar_gcmik: row.STHAR_GCMIK,
+        sthar_bf: row.STHAR_BF,
+        sthar_satisk: row.STHAR_SATISK,
+        sthar_carikod: row.STHAR_CARIKOD,
+        kod_5: row.KOD_5,
+        depo_miktar: row.DEPO_MIKTAR,
+      };
+    }).filter(item => /^[\w\d\-]+$/.test(item.fisno)); // temizlenmiş fisno kontrolü
 
     const { error: itemsError } = await supabase.from("order_items").upsert(orderItems, {
       onConflict: ['fisno', 'stok_kodu']
@@ -93,16 +99,13 @@ export default async function handler(req, res) {
       return res.status(500).json({ message: "Supabase order_items hatası: " + itemsError.message });
     }
 
-    // latestFisnos dizisini boş elemanlardan arındır
-    const latestFisnos = uniqueOrders
-      .map(o => o.fisno)
-      .filter(fis => typeof fis === 'string' && fis.length > 0);
+    // Silme için geçerli fisnolar
+    const latestFisnos = uniqueOrders.map(o => o.fisno);
 
     console.log("Supabase'te tutulacak son 10 fiş:", latestFisnos);
 
-    // Eğer dizide hiç fiş yoksa silme işlemini atla
+    // Eğer latestFisnos boş değilse eski kayıtları sil
     if (latestFisnos.length > 0) {
-      // orders tablosundan eski fişleri sil
       const { error: deleteOldOrdersError } = await supabase
         .from('orders')
         .delete()
@@ -113,7 +116,6 @@ export default async function handler(req, res) {
         return res.status(500).json({ message: "Supabase orders silme hatası: " + deleteOldOrdersError.message });
       }
 
-      // order_items tablosundan eski fişlere ait kalemleri sil
       const { error: deleteOldItemsError } = await supabase
         .from('order_items')
         .delete()
