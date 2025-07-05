@@ -1,0 +1,15 @@
+{
+  "name": "Depo Sipariş Sistemi",
+  "short_name": "DepoSipariş",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0d47a1",
+  "icons": [
+    {
+      "src": "/placeholder-image.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
