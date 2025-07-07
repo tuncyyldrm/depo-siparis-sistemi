@@ -9,6 +9,7 @@ export default async function handler(req, res) {
       .select(`
         fisno,
         carikod,
+        siparis_notu,
         order_items(*)
       `)
       .order('fisno', { ascending: false })

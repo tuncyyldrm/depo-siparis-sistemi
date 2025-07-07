@@ -51,35 +51,29 @@ export default async function handler(req, res) {
         p.STHAR_SATISK,
         p.STHAR_CARIKOD,
         s.KOD_5,
-        CAST(ISNULL(d.DEPO_MIKTAR, 0) AS DECIMAL(18,0)) AS DEPO_MIKTAR
+        CAST(ISNULL(d.DEPO_MIKTAR, 0) AS DECIMAL(18,0)) AS DEPO_MIKTAR,
+        dbo.trk(f.ACIK1) AS SIPARIS_NOTU
       FROM TBLSIPATRA p
       INNER JOIN SonFisler sf ON p.FISNO = sf.FISNO
       LEFT JOIN TBLSTSABIT s ON p.STOK_KODU = s.STOK_KODU
       LEFT JOIN DepoMiktar d ON p.STOK_KODU = d.STOK_KODU
+      LEFT JOIN TBLFATUEK f ON p.FISNO = f.FATIRSNO
       ORDER BY p.FISNO DESC, p.STOK_KODU;
     `);
 
     const rows = result.recordset;
 
-    // Unique orders (fisno'ya göre benzersiz)
+    // 1) orders tablosu için: siparis_notu dahil, sadece benzersiz fisnolar
     const uniqueOrders = Array.from(
       new Map(rows.map(row => [temizleFisno(row.FISNO), row])).values()
     ).map(order => ({
       fisno: temizleFisno(order.FISNO),
       carikod: order.STHAR_CARIKOD || null,
+      siparis_notu: order.SIPARIS_NOTU || null,  // sadece orders tablosu için
       created_at: new Date().toISOString(),
     })).filter(o => o.fisno);
 
-    // Upsert orders
-    const { error: orderError } = await supabase.from("orders").upsert(uniqueOrders, {
-      onConflict: ['fisno']
-    });
-    if (orderError) {
-      console.error("Orders upsert hatası:", orderError);
-      return res.status(500).json({ message: "Supabase orders hatası: " + orderError.message });
-    }
-
-    // Upsert order_items
+    // 2) order_items tablosu için: siparis_notu olmadan
     const orderItems = rows.map(row => ({
       fisno: temizleFisno(row.FISNO),
       stok_kodu: row.STOK_KODU,
@@ -89,8 +83,19 @@ export default async function handler(req, res) {
       sthar_carikod: row.STHAR_CARIKOD,
       kod_5: row.KOD_5,
       depo_miktar: row.DEPO_MIKTAR,
+      // siparis_notu yok!
     })).filter(item => item.fisno);
 
+    // orders upsert
+    const { error: orderError } = await supabase.from("orders").upsert(uniqueOrders, {
+      onConflict: ['fisno']
+    });
+    if (orderError) {
+      console.error("Orders upsert hatası:", orderError);
+      return res.status(500).json({ message: "Supabase orders hatası: " + orderError.message });
+    }
+
+    // order_items upsert
     const { error: itemsError } = await supabase.from("order_items").upsert(orderItems, {
       onConflict: ['fisno', 'stok_kodu']
     });
@@ -99,14 +104,13 @@ export default async function handler(req, res) {
       return res.status(500).json({ message: "Supabase order_items hatası: " + itemsError.message });
     }
 
+    // Silme işlemleri ve geri kalan kod aynı...
     const latestFisnos = uniqueOrders.map(o => o.fisno).filter(Boolean);
     console.log("Supabase'te tutulacak son 10 fiş:", latestFisnos);
 
     if (latestFisnos.length > 0) {
-      // latestFisnos dizisini Set olarak oluştur
       const latestFisnoSet = new Set(latestFisnos);
 
-      // Orders tablosundaki tüm fisnoları çek
       const { data: allOrders, error: fetchError } = await supabase
         .from("orders")
         .select("fisno");
@@ -116,13 +120,11 @@ export default async function handler(req, res) {
         return res.status(500).json({ message: "Orders listeleme hatası: " + fetchError.message });
       }
 
-      // Silinecek fisnoları bul (son 10 dışındakiler)
       const fisnosToDelete = allOrders
         .map(o => o.fisno)
         .filter(fis => !latestFisnoSet.has(fis));
 
       if (fisnosToDelete.length > 0) {
-        // orders sil
         const { error: deleteOrdersError } = await supabase
           .from("orders")
           .delete()
@@ -133,7 +135,6 @@ export default async function handler(req, res) {
           return res.status(500).json({ message: "Orders silme hatası: " + deleteOrdersError.message });
         }
 
-        // order_items sil
         const { error: deleteItemsError } = await supabase
           .from("order_items")
           .delete()
@@ -144,7 +145,6 @@ export default async function handler(req, res) {
           return res.status(500).json({ message: "Order_items silme hatası: " + deleteItemsError.message });
         }
 
-        // order_item_selections sil
         const { error: deleteSelectionsError } = await supabase
           .from("order_item_selections")
           .delete()
