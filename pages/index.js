@@ -504,7 +504,7 @@ const handlePrint = () => {
                           </div>
                           <label className="flex flex-wrap gap-x-4 gap-y-1 mb-2 text-sm text-gray-800">
                             <div>
-                              <strong>Raf:</strong> {item.KOD_5 ?? '-'}
+                              <strong>Raf:</strong> {item.kod_5 ?? '-'}
                             </div>
                             <input
                               type="checkbox"
