@@ -182,7 +182,7 @@ const payload = JSON.stringify({
   notification: {
     title: "Yeni Sipariş Geldi!",
     body: `Sipariş No: ${latestOrder.fisno}`,
-    data: { url: `/fisno=${latestOrder.fisno}` },  // buraya mutlaka data içinde ekle
+    url: `/fisno=${latestOrder.fisno}`  // buraya mutlaka data içinde ekle
     icon: "/icon.png",
     badge: "/badge.png"
   }
