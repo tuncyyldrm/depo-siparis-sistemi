@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import cleanTerms from '../data/cleanTerms';
 
 export default function Home() {
@@ -10,10 +11,13 @@ export default function Home() {
   const [cariPopup, setCariPopup] = useState({ visible: false, url: '' });
   const [cariMap, setCariMap] = useState({}); // cari kod → cari isim haritası
 
-  const regex = new RegExp(
-    `\\b(${cleanTerms.map(term => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`,
-    'gi'
-  );
+const regex = useMemo(() => {
+  const escapedTerms = cleanTerms
+    .filter(Boolean) // boş terimleri filtrele
+    .map(term => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const pattern = `(${escapedTerms.join('|')})`;
+  return new RegExp(pattern, 'gi'); // \b kaldırıldı çünkü bazı terimler / veya - içerebilir
+}, [cleanTerms]);
 
   function temizleStokKodu(stok) {
     return stok.replace(regex, '').trim();
@@ -258,6 +262,9 @@ const handlePrint = () => {
         }
 
         @media print {
+		  tr.break-after {
+			page-break-after: always;
+		  }
           @page {
             margin: 2cm;
           }
@@ -307,28 +314,27 @@ const handlePrint = () => {
             <th class="col-toplam">Toplam</th>
           </tr>
         </thead>
-        <tbody>
-          ${selectedItems
-            .map(item => {
-              const birimFiyat = parseFloat(item.sthar_bf) || 0;
-              const miktar = parseFloat(item.sthar_gcmik) || 0;
-              const toplam = (birimFiyat * miktar).toFixed(2);
-              return `
-                <tr>
-                  <td class="col-stok">${item.stok_kodu}</td>
-                  <td class="col-note"></td>
-                  <td class="col-miktar">${miktar}</td>
-                  <td class="col-depomiktar">${item.depo_miktar ?? '-'}</td>
-                  <td class="col-raf">${item.KOD_5 ?? '-'}</td>
-                  <td class="col-birimfiyat">${birimFiyat.toFixed(2)}</td>
-                  <td class="col-toplam">${toplam}</td>
-                </tr>
-              `;
-            })
-            .join('')}
-        </tbody>
-        <tfoot>
-          <tr>
+		<tbody>
+		  ${selectedItems.map((item, i) => {
+			const birimFiyat = parseFloat(item.sthar_bf) || 0;
+			const miktar = parseFloat(item.sthar_gcmik) || 0;
+			const toplam = (birimFiyat * miktar).toFixed(2);
+			const breakClass = ((i + 1) % 30 === 0) ? 'break-after' : ''; // her 30 satırda bir
+			return `
+			  <tr class="${breakClass}">
+				<td class="col-stok">${item.stok_kodu}</td>
+				<td class="col-note"></td>
+				<td class="col-miktar">${miktar}</td>
+				<td class="col-depomiktar">${item.depo_miktar ?? '-'}</td>
+				<td class="col-raf">${item.KOD_5 ?? '-'}</td>
+				<td class="col-birimfiyat">${birimFiyat.toFixed(2)}</td>
+				<td class="col-toplam">${toplam}</td>
+			  </tr>
+			`;
+		  }).join('')}
+		</tbody>
+		<tfoot>
+			<tr>
 			<td colspan="2">Toplam Ürün Adedi:</td>
             <td>${toplamUrunAdedi}</td>
             <td colspan="3">Toplam Fiyat:</td>
@@ -336,7 +342,6 @@ const handlePrint = () => {
           </tr>
         </tfoot>
       </table>
-
     </body>
     </html>
   `;
@@ -430,8 +435,7 @@ const handlePrint = () => {
                       color: '#444',
                     }}
                   >
-                    <strong>Sipariş Notu:</strong>
-                    <br />
+                    <strong>Sipariş Notu: </strong>
                     {selectedOrder.siparis_notu}
                   </p>
                 )}
