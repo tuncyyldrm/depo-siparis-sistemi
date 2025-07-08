@@ -181,7 +181,7 @@ if (subError) {
   const payload = {
     title: "Yeni Sipariş Geldi!",
     body: `Sipariş No: ${latestOrder.fisno}`,
-    url: "/orders",
+    url: "/",
   };
 
   await Promise.allSettled(
