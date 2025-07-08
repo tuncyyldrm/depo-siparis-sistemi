@@ -1,4 +1,3 @@
-@@ -0,0 +1,28 @@
 self.addEventListener('push', event => {
   const data = event.data?.json() || {};
   const title = data.title || 'Yeni Sipariş';
