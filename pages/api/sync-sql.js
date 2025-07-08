@@ -168,34 +168,25 @@ export default async function handler(req, res) {
       console.warn("latestFisnos dizisi boş, silme işlemi atlandı.");
     }
 
+
+
+    
 // --- Bildirim gönderme bölümü ---
-const { data: subscriptions, error: subError } = await supabase
-  .from('push_subscriptions')
-  .select('*');
+const { data: subscriptions, error: subError } = await supabase.from('push_subscriptions').select('*');
 
 if (subError) {
   console.error("Abonelikler çekilemedi:", subError);
 } else if (subscriptions.length > 0 && uniqueOrders.length > 0) {
   const latestOrder = uniqueOrders[0];
-
-const payload = JSON.stringify({
-  notification: {
+  const payload = {
     title: "Yeni Sipariş Geldi!",
     body: `Sipariş No: ${latestOrder.fisno}`,
-    data: {
-      url: `/fisno=${latestOrder.fisno}`,
-      fisno: latestOrder.fisno
-    },
-    icon: "/icon.png",     // İsteğe bağlı
-    badge: "/badge.png"
-  }
-});
-
+    url: "/orders",
+  };
 
   await Promise.allSettled(
     subscriptions.map(async (sub) => {
       if (!sub.subscription) return;
-
       let subscriptionObj = sub.subscription;
       if (typeof subscriptionObj === 'string') {
         try {
@@ -204,7 +195,6 @@ const payload = JSON.stringify({
           return; // Parse hatası varsa atla
         }
       }
-
       try {
         await sendPushNotification(subscriptionObj, payload);
       } catch (e) {
@@ -223,7 +213,6 @@ const payload = JSON.stringify({
     })
   );
 }
-
 
 
 
