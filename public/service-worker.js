@@ -1,16 +1,19 @@
-// Push bildirimi geldiğinde çalışır
 self.addEventListener('push', event => {
-  const data = event.data?.json() || {};
-  const title = data.title || 'Yeni Sipariş';
+  let data = {};
+  try {
+    data = event.data.json();
+  } catch (e) {
+    console.error("JSON parse hatası:", e);
+  }
 
+  const notification = data.notification || {};
+
+  const title = notification.title || "Yeni Sipariş";
   const options = {
-    body: data.body || 'Yeni bir sipariş geldi.',
-    icon: '/icon.png',           // Bildirim simgesi
-    badge: '/badge.png',         // Küçük simge
-    data: {
-      url: data.data?.url || '/', // 🔁 Bildirim tıklanınca yönlendirilecek URL
-      fisno: data.data?.fisno || null // Ek veri gerekirse
-    }
+    body: notification.body || "",
+    icon: notification.icon || "/icon.png",
+    badge: notification.badge || "/badge.png",
+    data: notification.data || { url: "/" }
   };
 
   event.waitUntil(
@@ -18,26 +21,23 @@ self.addEventListener('push', event => {
   );
 });
 
-// Bildirime tıklanınca çalışır
 self.addEventListener('notificationclick', event => {
   event.notification.close();
 
-  const urlToOpen = new URL(
-    event.notification.data?.url || '/',
+  const targetUrl = new URL(
+    event.notification.data?.url || "/",
     self.location.origin
   ).href;
 
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
-      // Açık bir pencere zaten varsa oraya odaklan
-      for (const client of windowClients) {
-        if (client.url === urlToOpen && 'focus' in client) {
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then(clientsList => {
+      for (const client of clientsList) {
+        if (client.url === targetUrl && "focus" in client) {
           return client.focus();
         }
       }
-      // Yoksa yeni pencere aç
       if (clients.openWindow) {
-        return clients.openWindow(urlToOpen);
+        return clients.openWindow(targetUrl);
       }
     })
   );
