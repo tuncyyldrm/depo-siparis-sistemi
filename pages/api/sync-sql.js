@@ -179,7 +179,7 @@ title: "Yeni Sipariş Geldi!",
 body: `Sipariş No: ${latestOrder.fisno}`,
 data: {
   url: `/fisno=${latestOrder.fisno}`
-},
+}
   };
 
   await Promise.allSettled(
