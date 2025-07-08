@@ -25,14 +25,14 @@ self.addEventListener('notificationclick', event => {
   event.notification.close();
 
   const targetUrl = new URL(
-    event.notification.data?.url || "/",
+    event.notification.data?.url || '/',
     self.location.origin
   ).href;
 
   event.waitUntil(
-    clients.matchAll({ type: "window", includeUncontrolled: true }).then(clientsList => {
-      for (const client of clientsList) {
-        if (client.url === targetUrl && "focus" in client) {
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+      for (const client of windowClients) {
+        if (client.url === targetUrl && 'focus' in client) {
           return client.focus();
         }
       }
@@ -42,3 +42,4 @@ self.addEventListener('notificationclick', event => {
     })
   );
 });
+
