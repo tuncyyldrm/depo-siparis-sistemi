@@ -174,12 +174,12 @@ const { data: subscriptions, error: subError } = await supabase
   .select('*');
 
 if (subError) {
-  console.error("❌ Abonelikler çekilemedi:", subError);
+  console.error("Abonelikler çekilemedi:", subError);
 } else if (subscriptions.length > 0 && uniqueOrders.length > 0) {
   const latestOrder = uniqueOrders[0];
 
   const payload = JSON.stringify({
-    title: "🛒 Yeni Sipariş Geldi!",
+    title: "Yeni Sipariş Geldi!",
     body: `Sipariş No: ${latestOrder.fisno}`,
     data: {
       url: `/fisno=${latestOrder.fisno}`
@@ -194,35 +194,28 @@ if (subError) {
       if (typeof subscriptionObj === 'string') {
         try {
           subscriptionObj = JSON.parse(subscriptionObj);
-        } catch (parseError) {
-          console.warn("⚠️ Abonelik JSON parse hatası, atlandı:", parseError);
-          return;
+        } catch {
+          return; // Parse hatası varsa atla
         }
       }
 
       try {
         await sendPushNotification(subscriptionObj, payload);
-      } catch (err) {
-        const statusCode = err.statusCode || err.status || 0;
-
+      } catch (e) {
+        const statusCode = e.statusCode || e.status || 0;
         if (statusCode === 410 || statusCode === 404) {
-          console.log(`🗑️ Geçersiz abonelik siliniyor: ${subscriptionObj.endpoint}`);
+          console.log(`Abonelik geçersiz, siliniyor: ${subscriptionObj.endpoint}`);
           const { error: delError } = await supabase
             .from('push_subscriptions')
             .delete()
             .eq('endpoint', subscriptionObj.endpoint);
-
-          if (delError) {
-            console.error("❌ Abonelik silinirken hata oluştu:", delError);
-          }
+          if (delError) console.error('Abonelik silme hatası:', delError);
         } else {
-          console.error("❌ Bildirim gönderme hatası:", err);
+          console.error('Bildirim gönderme hatası:', e);
         }
       }
     })
   );
-} else {
-  console.log("ℹ️ Gönderilecek bildirim veya abonelik yok.");
 }
 
 
