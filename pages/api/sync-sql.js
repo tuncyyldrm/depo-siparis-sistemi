@@ -175,12 +175,14 @@ if (subError) {
   console.error("Abonelikler çekilemedi:", subError);
 } else if (subscriptions.length > 0 && uniqueOrders.length > 0) {
   const latestOrder = uniqueOrders[0];
-title: "Yeni Sipariş Geldi!",
-body: `Sipariş No: ${latestOrder.fisno}`,
-data: {
-  url: `/fisno=${latestOrder.fisno}`
-}
-  };
+
+  const payload = JSON.stringify({
+    title: "Yeni Sipariş Geldi!",
+    body: `Sipariş No: ${latestOrder.fisno}`,
+    data: {
+      url: `/fisno=${latestOrder.fisno}`
+    }
+  });
 
   await Promise.allSettled(
     subscriptions.map(async (sub) => {
