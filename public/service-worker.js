@@ -1,27 +1,43 @@
+// Push bildirimi geldiğinde çalışır
 self.addEventListener('push', event => {
   const data = event.data?.json() || {};
   const title = data.title || 'Yeni Sipariş';
+
   const options = {
     body: data.body || 'Yeni bir sipariş geldi.',
-    icon: '/icon.png',       // Uygun yol ve dosyalar olmalı
-    badge: '/badge.png',
-    data: data.url || '/',
+    icon: '/icon.png',           // Bildirim simgesi
+    badge: '/badge.png',         // Küçük simge
+    data: {
+      url: data.data?.url || '/', // 🔁 Bildirim tıklanınca yönlendirilecek URL
+      fisno: data.data?.fisno || null // Ek veri gerekirse
+    }
   };
-  event.waitUntil(self.registration.showNotification(title, options));
+
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
 });
 
+// Bildirime tıklanınca çalışır
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  const url = event.notification.data;
+
+  const urlToOpen = new URL(
+    event.notification.data?.url || '/',
+    self.location.origin
+  ).href;
+
   event.waitUntil(
-    clients.matchAll({ type: 'window' }).then(windowClients => {
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+      // Açık bir pencere zaten varsa oraya odaklan
       for (const client of windowClients) {
-        if (client.url === url && 'focus' in client) {
+        if (client.url === urlToOpen && 'focus' in client) {
           return client.focus();
         }
       }
+      // Yoksa yeni pencere aç
       if (clients.openWindow) {
-        return clients.openWindow(url);
+        return clients.openWindow(urlToOpen);
       }
     })
   );
