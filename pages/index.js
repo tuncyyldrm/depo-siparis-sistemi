@@ -38,7 +38,47 @@ const regex = useMemo(() => {
     const fisnoFromUrl = urlParams.get('fisno');
     if (fisnoFromUrl) setSelectedFisno(fisnoFromUrl);
   }, []);
+  
+  // 5. index.js (Client tarafı abone olma)
+useEffect(() => {
+  if ('serviceWorker' in navigator && 'PushManager' in window) {
+    navigator.serviceWorker.register('/service-worker.js').then(async reg => {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') return;
 
+      const existing = await reg.pushManager.getSubscription();
+      if (!existing) {
+        const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+        if (!vapidKey) {
+          console.error('VAPID_PUBLIC_KEY environment variable is missing!');
+          return;
+        }
+        const convertedKey = urlBase64ToUint8Array(vapidKey);
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: convertedKey
+        });
+
+        await fetch('/api/save-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(sub)
+        });
+      }
+    });
+  }
+}, []);
+
+
+// 6. Yardımcı fonksiyon
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
   // Google Sheets'ten cari verisi çek
   useEffect(() => {
     async function fetchCariData() {

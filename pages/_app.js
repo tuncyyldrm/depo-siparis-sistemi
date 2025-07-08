@@ -1,8 +1,48 @@
-// pages/_app.js
 import Head from 'next/head';
+import { useEffect } from 'react';
 import '../styles/globals.css';
 
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+}
+
 export default function MyApp({ Component, pageProps }) {
+  useEffect(() => {
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      navigator.serviceWorker.register('/service-worker.js').then(async (reg) => {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          console.log('Bildirim izni reddedildi.');
+          return;
+        }
+
+        const existingSubscription = await reg.pushManager.getSubscription();
+        if (!existingSubscription) {
+          const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+          const convertedKey = urlBase64ToUint8Array(vapidPublicKey);
+
+          const subscription = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: convertedKey,
+          });
+
+          await fetch('/api/save-subscription', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(subscription),
+          });
+
+          console.log('Push aboneliği kaydedildi.');
+        } else {
+          console.log('Zaten abonelik mevcut.');
+        }
+      });
+    }
+  }, []);
+
   return (
     <>
       <Head>
