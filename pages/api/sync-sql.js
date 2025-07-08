@@ -170,116 +170,47 @@ export default async function handler(req, res) {
 
 
 
-// Bildirim gönderme bölümü - Geliştirilmiş versiyon
-async function sendOrderNotifications(uniqueOrders) {
-  if (!uniqueOrders || uniqueOrders.length === 0) {
-    console.log("Bildirim gönderilecek yeni sipariş yok");
-    return;
-  }
+// --- Bildirim gönderme bölümü ---
+const { data: subscriptions, error: subError } = await supabase.from('push_subscriptions').select('*');
 
-  // Son işlenen fiş numarasını kontrol et (duplicate gönderimi önlemek için)
-  const { data: lastNotification, error: lastNotifError } = await supabase
-    .from('notification_logs')
-    .select('fisno')
-    .order('created_at', { ascending: false })
-    .limit(1);
-
+if (subError) {
+  console.error("Abonelikler çekilemedi:", subError);
+} else if (subscriptions.length > 0 && uniqueOrders.length > 0) {
   const latestOrder = uniqueOrders[0];
-  
-  if (lastNotification?.length > 0 && lastNotification[0].fisno === latestOrder.fisno) {
-    console.log("Bu fiş numarasına zaten bildirim gönderildi:", latestOrder.fisno);
-    return;
-  }
-
-  // Bildirim payload'ı oluştur
   const payload = {
     title: "Yeni Sipariş Geldi!",
     body: `Sipariş No: ${latestOrder.fisno}`,
-    url: `/siparisler?fisno=${latestOrder.fisno}`,
-    icon: '/notification-icon.png',
-    badge: '/badge-icon.png',
-    vibrate: [200, 100, 200],
-    timestamp: Date.now(),
-    fisno: latestOrder.fisno // Takip için ekstra veri
+    url: `/fisno=${latestOrder.fisno}`,
   };
 
-  // Tüm abonelikleri getir
-  const { data: subscriptions, error: subError } = await supabase
-    .from('push_subscriptions')
-    .select('*');
-
-  if (subError) {
-    console.error("Abonelikler çekilemedi:", subError);
-    return;
-  }
-
-  if (subscriptions.length === 0) {
-    console.log("Bildirim gönderecek abonelik bulunamadı");
-    return;
-  }
-
-  // Bildirimleri gönder ve sonuçları izle
-  const notificationResults = await Promise.allSettled(
+  await Promise.allSettled(
     subscriptions.map(async (sub) => {
-      if (!sub.subscription) {
-        return { status: 'skipped', reason: 'No subscription data' };
+      if (!sub.subscription) return;
+      let subscriptionObj = sub.subscription;
+      if (typeof subscriptionObj === 'string') {
+        try {
+          subscriptionObj = JSON.parse(subscriptionObj);
+        } catch {
+          return; // Parse hatası varsa atla
+        }
       }
-
-      let subscriptionObj;
       try {
-        subscriptionObj = typeof sub.subscription === 'string' 
-          ? JSON.parse(sub.subscription) 
-          : sub.subscription;
-      } catch (e) {
-        return { status: 'error', reason: 'Invalid subscription format' };
-      }
-
-      try {
-        await webpush.sendNotification(subscriptionObj, JSON.stringify(payload));
-        return { status: 'success', endpoint: subscriptionObj.endpoint };
+        await sendPushNotification(subscriptionObj, payload);
       } catch (e) {
         const statusCode = e.statusCode || e.status || 0;
-        
-        // Geçersiz abonelikleri sil
         if (statusCode === 410 || statusCode === 404) {
           console.log(`Abonelik geçersiz, siliniyor: ${subscriptionObj.endpoint}`);
-          await supabase
+          const { error: delError } = await supabase
             .from('push_subscriptions')
             .delete()
             .eq('endpoint', subscriptionObj.endpoint);
+          if (delError) console.error('Abonelik silme hatası:', delError);
+        } else {
+          console.error('Bildirim gönderme hatası:', e);
         }
-        
-        return { 
-          status: 'error', 
-          reason: e.message,
-          endpoint: subscriptionObj.endpoint,
-          statusCode 
-        };
       }
     })
   );
-
-  // İstatistikleri logla
-  const stats = {
-    total: notificationResults.length,
-    success: notificationResults.filter(r => r.value?.status === 'success').length,
-    error: notificationResults.filter(r => r.value?.status === 'error').length,
-    skipped: notificationResults.filter(r => r.value?.status === 'skipped').length
-  };
-
-  console.log('Bildirim istatistikleri:', stats);
-
-  // Bildirim logunu kaydet
-  if (stats.success > 0) {
-    await supabase
-      .from('notification_logs')
-      .insert([{
-        fisno: latestOrder.fisno,
-        sent_at: new Date().toISOString(),
-        success_count: stats.success,
-        error_count: stats.error
-      }]);
-  }
 }
 
     return res.status(200).json({ message: "Siparişler başarıyla güncellendi, eski fişler temizlendi ve bildirimler gönderildi!" });
