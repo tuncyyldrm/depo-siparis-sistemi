@@ -169,15 +169,17 @@ export default async function handler(req, res) {
     }
 
 // --- Bildirim gönderme bölümü ---
-const { data: subscriptions, error: subError } = await supabase.from('push_subscriptions').select('*');
+const { data: subscriptions, error: subError } = await supabase
+  .from('push_subscriptions')
+  .select('*');
 
 if (subError) {
-  console.error("Abonelikler çekilemedi:", subError);
+  console.error("❌ Abonelikler çekilemedi:", subError);
 } else if (subscriptions.length > 0 && uniqueOrders.length > 0) {
   const latestOrder = uniqueOrders[0];
 
   const payload = JSON.stringify({
-    title: "Yeni Sipariş Geldi!",
+    title: "🛒 Yeni Sipariş Geldi!",
     body: `Sipariş No: ${latestOrder.fisno}`,
     data: {
       url: `/fisno=${latestOrder.fisno}`
@@ -187,32 +189,42 @@ if (subError) {
   await Promise.allSettled(
     subscriptions.map(async (sub) => {
       if (!sub.subscription) return;
+
       let subscriptionObj = sub.subscription;
       if (typeof subscriptionObj === 'string') {
         try {
           subscriptionObj = JSON.parse(subscriptionObj);
-        } catch {
-          return; // Parse hatası varsa atla
+        } catch (parseError) {
+          console.warn("⚠️ Abonelik JSON parse hatası, atlandı:", parseError);
+          return;
         }
       }
+
       try {
         await sendPushNotification(subscriptionObj, payload);
-      } catch (e) {
-        const statusCode = e.statusCode || e.status || 0;
+      } catch (err) {
+        const statusCode = err.statusCode || err.status || 0;
+
         if (statusCode === 410 || statusCode === 404) {
-          console.log(`Abonelik geçersiz, siliniyor: ${subscriptionObj.endpoint}`);
+          console.log(`🗑️ Geçersiz abonelik siliniyor: ${subscriptionObj.endpoint}`);
           const { error: delError } = await supabase
             .from('push_subscriptions')
             .delete()
             .eq('endpoint', subscriptionObj.endpoint);
-          if (delError) console.error('Abonelik silme hatası:', delError);
+
+          if (delError) {
+            console.error("❌ Abonelik silinirken hata oluştu:", delError);
+          }
         } else {
-          console.error('Bildirim gönderme hatası:', e);
+          console.error("❌ Bildirim gönderme hatası:", err);
         }
       }
     })
   );
+} else {
+  console.log("ℹ️ Gönderilecek bildirim veya abonelik yok.");
 }
+
 
 
 
