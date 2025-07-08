@@ -162,8 +162,6 @@ export default function Home() {
 
 
 
-
-
 const handlePrint = () => {
   if (!selectedFisno) {
     alert('Lütfen önce bir fiş seçin!');
@@ -177,11 +175,9 @@ const handlePrint = () => {
   }
 
   const selectedItems = selectedOrder.order_items;
-
   const rawCariKod = selectedOrder.carikod || '';
   const cariKod = normalizeCariKod(rawCariKod);
   const cariIsim = cariMap[cariKod] || 'Cari bilgi bulunamadı';
-
   const tarihSaat = new Date().toLocaleString('tr-TR');
   const siparis_notu = selectedOrder.siparis_notu || '';
 
@@ -191,155 +187,157 @@ const handlePrint = () => {
     return sum + fiyat * miktar;
   }, 0).toFixed(2);
 
+  const toplamUrunAdedi = selectedItems.reduce((sum, item) => {
+    return sum + (parseFloat(item.sthar_gcmik) || 0);
+  }, 0);
+
   const htmlContent = `
     <html>
-      <head>
-        <title>Fiş No: ${selectedFisno} - Yazdır</title>
-        <style>
+    <head>
+      <title>Sipariş Hazırlama Fişi - ${selectedFisno}</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          color: #000;
+          margin: 20px;
+        }
+        header {
+          border-bottom: 2px solid #000;
+          padding-bottom: 10px;
+          margin-bottom: 15px;
+        }
+        .header-top {
+          display: flex;
+          justify-content: space-between;
+          font-size: 16px;
+          font-weight: bold;
+        }
+        .header-info {
+          margin-top: 10px;
+          font-size: 14px;
+        }
+        .header-info div {
+          margin: 3px 0;
+          white-space: normal;
+          word-wrap: break-word;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 0;
+          font-size: 13px;
+        }
+        th, td {
+          border: 1px solid #444;
+          padding: 5px 8px;
+        }
+        thead th {
+          background-color: #f0f0f0;
+          font-weight: bold;
+        }
+        th.col-stok, td.col-stok { width: 25%; text-align: left; }
+        th.col-note, td.col-note { width: 15%; text-align: left; }
+        th.col-miktar, td.col-miktar,
+        th.col-depomiktar, td.col-depomiktar,
+        th.col-birimfiyat, td.col-birimfiyat,
+        th.col-toplam, td.col-toplam {
+          text-align: right;
+        }
+        th.col-miktar, td.col-miktar { width: 10%; }
+        th.col-depomiktar, td.col-depomiktar { width: 10%; }
+        th.col-raf, td.col-raf { width: 10%; text-align: left; }
+        th.col-birimfiyat, td.col-birimfiyat { width: 15%; }
+        th.col-toplam, td.col-toplam { width: 15%; }
+
+        tfoot td {
+          font-weight: bold;
+          font-size: 14px;
+          border: none;
+          text-align: right;
+          padding-top: 8px;
+        }
+
+        @media print {
+          @page {
+            margin: 2cm;
+          }
           body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            color: #000;
+            margin: 0;
+            font-size: 11pt;
           }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            font-size: 14px;
+          header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            padding:0 0 20px 0;
+            border-bottom: 1px solid #000;
           }
-          th, td {
-            border: 1px solid #444;
-            padding: 8px 10px;
+          body::before {
+            content: "";
+            display: block;
+            height: 130px; /* header boşluğu */
           }
-          thead th {
-            background-color: #f0f0f0;
-            font-weight: bold;
-          }
-          /* Sütun genişlikleri */
-          th.col-stok, td.col-stok {
-            width: 25%;
-            text-align: left;
-          }
-          th.col-note, td.col-note {
-            width: 15%;
-            text-align: right;
-          }
-          th.col-miktar, td.col-miktar,
-          th.col-depomiktar, td.col-depomiktar,
-          th.col-birimfiyat, td.col-birimfiyat,
-          th.col-toplam, td.col-toplam {
-            width: 10%-15%; /* toplam %100 tamamlayacak şekilde */
-            text-align: right;
-          }
-          th.col-miktar, td.col-miktar { width: 10%; }
-          th.col-depomiktar, td.col-depomiktar { width: 10%; }
-          th.col-raf, td.col-raf {
-            width: 10%;
-            text-align: left;
-          }
-          th.col-birimfiyat, td.col-birimfiyat {
-            width: 15%;
-            text-align: right;
-          }
-          th.col-toplam, td.col-toplam {
-            width: 15%;
-            text-align: right;
-          }
-          /* note-cell boş hücre için genişlik ve sağa hizalama */
-          td.note-cell {
-            width: 10%;
-            text-align: right;
-          }
-          tfoot tr td {
-            border: none;
-            font-weight: bold;
-            font-size: 16px;
-          }
-          tfoot tr td.total-cell {
-            text-align: right;
-            padding-right: 15px;
-          }
-          @media print {
-            @page {
-              margin: 2cm;
-            }
-            body {
-              margin: 0;
-              padding-top: 4cm;
-              font-size: 12pt;
-            }
-            header {
-              position: fixed;
-              top: 0;
-              left: 0;
-              right: 0;
-              height: 3.5cm;
-              padding: 0
-              background: #fff;
-              border-bottom: 1px solid #000;
-              align-items: center;
-              font-size: 12pt;
-              font-weight: bold;
-            }
-            header > div {
-              white-space: nowrap;
-            }
-          }
-          @media screen {
-            header {
-              display: none;
-            }
-          }
-        </style>
-      </head>
-      <body>
-        <header>
-          <div>Cari Kod: ${rawCariKod}</div>
-          <div>Cari İsim: ${cariIsim}</div>
+        }
+      </style>
+    </head>
+    <body>
+      <header>
+        <div class="header-top">
           <div>Fiş No: ${selectedFisno}</div>
-          <div>Tarih Saat: ${tarihSaat}</div>
-          <div>Not: ${siparis_notu}</div>
-        </header>
-        <table>
-          <thead>
-            <tr>
-              <th class="col-stok">Stok Kodu</th>
-              <th class="col-note">Not</th>
-              <th class="col-miktar">Miktar</th>
-              <th class="col-depomiktar">Depo Miktar</th>
-              <th class="col-raf">Raf</th>
-              <th class="col-birimfiyat">Birim Fiyat</th>
-              <th class="col-toplam">Toplam Fiyat</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${selectedItems
-              .map(item => {
-                const birimFiyat = parseFloat(item.sthar_bf) || 0;
-                const miktar = parseFloat(item.sthar_gcmik) || 0;
-                const toplam = (birimFiyat * miktar).toFixed(2);
-                return `
-              <tr>
-                <td class="col-stok">${item.stok_kodu}</td>
-                <td class="note-cell col-note"></td>
-                <td class="col-miktar">${miktar}</td>
-                <td class="col-depomiktar">${item.depo_miktar ?? '-'}</td>
-                <td class="col-raf">${item.KOD_5 ?? '-'}</td>
-                <td class="col-birimfiyat">${birimFiyat.toFixed(2)}</td>
-                <td class="col-toplam">${toplam}</td>
-              </tr>
-            `;
-              })
-              .join('')}
-          </tbody>
-          <tfoot>
-            <tr>
-              <td colspan="6" class="total-cell">Toplam Fiyat:</td>
-              <td class="col-toplam">${toplamFiyat} ₺</td>
-            </tr>
-          </tfoot>
-        </table>
-      </body>
+          <div>Tarih: ${tarihSaat}</div>
+        </div>
+        <div class="header-info">
+          <div><strong>Cari Kod:</strong> ${rawCariKod}</div>
+          <div><strong>Cari İsim:</strong> ${cariIsim}</div>
+          <div><strong>Not:</strong> ${siparis_notu}</div>
+        </div>
+      </header>
+
+      <table>
+        <thead>
+          <tr>
+            <th class="col-stok">Stok Kodu</th>
+            <th class="col-note">Not</th>
+            <th class="col-miktar">Miktar</th>
+            <th class="col-depomiktar">Depo Miktar</th>
+            <th class="col-raf">Raf</th>
+            <th class="col-birimfiyat">Birim Fiyat</th>
+            <th class="col-toplam">Toplam</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${selectedItems
+            .map(item => {
+              const birimFiyat = parseFloat(item.sthar_bf) || 0;
+              const miktar = parseFloat(item.sthar_gcmik) || 0;
+              const toplam = (birimFiyat * miktar).toFixed(2);
+              return `
+                <tr>
+                  <td class="col-stok">${item.stok_kodu}</td>
+                  <td class="col-note"></td>
+                  <td class="col-miktar">${miktar}</td>
+                  <td class="col-depomiktar">${item.depo_miktar ?? '-'}</td>
+                  <td class="col-raf">${item.KOD_5 ?? '-'}</td>
+                  <td class="col-birimfiyat">${birimFiyat.toFixed(2)}</td>
+                  <td class="col-toplam">${toplam}</td>
+                </tr>
+              `;
+            })
+            .join('')}
+        </tbody>
+        <tfoot>
+          <tr>
+			<td colspan="2">Toplam Ürün Adedi:</td>
+            <td>${toplamUrunAdedi}</td>
+            <td colspan="3">Toplam Fiyat:</td>
+            <td>${toplamFiyat} ₺</td>
+          </tr>
+        </tfoot>
+      </table>
+
+    </body>
     </html>
   `;
 
@@ -353,9 +351,6 @@ const handlePrint = () => {
     printWindow.close();
   }, 500);
 };
-
-
-
 
 
 
