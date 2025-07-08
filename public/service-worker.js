@@ -1,45 +1,29 @@
+@@ -0,0 +1,28 @@
 self.addEventListener('push', event => {
-  let data = {};
-  try {
-    data = event.data.json();
-  } catch (e) {
-    console.error("JSON parse hatası:", e);
-  }
-
-  const notification = data.notification || {};
-
-  const title = notification.title || "Yeni Sipariş";
+  const data = event.data?.json() || {};
+  const title = data.title || 'Yeni Sipariş';
   const options = {
-    body: notification.body || "",
-    icon: notification.icon || "/icon.png",
-    badge: notification.badge || "/badge.png",
-    data: notification.data || { url: "/" }
+    body: data.body || 'Yeni bir sipariş geldi.',
+    icon: '/icon.png',       // Uygun yol ve dosyalar olmalı
+    badge: '/badge.png',
+    data: data.url || '/',
   };
-
-  event.waitUntil(
-    self.registration.showNotification(title, options)
-  );
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-
-  const targetUrl = new URL(
-    event.notification.data?.url || '/',
-    self.location.origin
-  ).href;
-
+  const url = event.notification.data;
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+    clients.matchAll({ type: 'window' }).then(windowClients => {
       for (const client of windowClients) {
-        if (client.url === targetUrl && 'focus' in client) {
+        if (client.url === url && 'focus' in client) {
           return client.focus();
         }
       }
       if (clients.openWindow) {
-        return clients.openWindow(targetUrl);
+        return clients.openWindow(url);
       }
     })
   );
 });
-
