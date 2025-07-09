@@ -36,7 +36,7 @@ async function sendPushNotification(subscription, payload) {
   try {
     await webpush.sendNotification(subscription, JSON.stringify(payload));
   } catch (error) {
-    console.error("Bildirim gönderme hatası:", error);
+    throw error; // Dışarı at, böylece hata handler tarafından yakalanır
   }
 }
 
@@ -82,6 +82,10 @@ export default async function handler(req, res) {
 
     const rows = result.recordset;
 
+    if (!rows || rows.length === 0) {
+      return res.status(200).json({ message: "Yeni sipariş yok." });
+    }
+
     // Benzersiz siparişler (orders tablosu için)
     const uniqueOrders = Array.from(
       new Map(rows.map((row) => [temizleFisno(row.FISNO), row])).values()
@@ -109,18 +113,18 @@ export default async function handler(req, res) {
       .filter((item) => item.fisno);
 
     // Supabase'e orders upsert
-    const { error: orderError } = await supabase.from("orders").upsert(uniqueOrders, {
-      onConflict: ["fisno"],
-    });
+    const { error: orderError } = await supabase
+      .from("orders")
+      .upsert(uniqueOrders, { onConflict: ["fisno"] });
     if (orderError) {
       console.error("Orders upsert hatası:", orderError);
       return res.status(500).json({ message: "Supabase orders hatası: " + orderError.message });
     }
 
     // Supabase'e order_items upsert
-    const { error: itemsError } = await supabase.from("order_items").upsert(orderItems, {
-      onConflict: ["fisno", "stok_kodu"],
-    });
+    const { error: itemsError } = await supabase
+      .from("order_items")
+      .upsert(orderItems, { onConflict: ["fisno", "stok_kodu"] });
     if (itemsError) {
       console.error("Order_items upsert hatası:", itemsError);
       return res.status(500).json({ message: "Supabase order_items hatası: " + itemsError.message });
@@ -128,13 +132,14 @@ export default async function handler(req, res) {
 
     // Son 10 sipariş numarasını al
     const latestFisnos = uniqueOrders.map((o) => o.fisno).filter(Boolean);
-    console.log("Supabase'te tutulacak son 10 fiş:", latestFisnos);
 
     // Silme işlemleri (eski siparişler temizleniyor)
     if (latestFisnos.length > 0) {
       const latestFisnoSet = new Set(latestFisnos);
 
-      const { data: allOrders, error: fetchError } = await supabase.from("orders").select("fisno");
+      const { data: allOrders, error: fetchError } = await supabase
+        .from("orders")
+        .select("fisno");
 
       if (fetchError) {
         console.error("Orders listeleme hatası:", fetchError);
@@ -146,19 +151,28 @@ export default async function handler(req, res) {
         .filter((fis) => !latestFisnoSet.has(fis));
 
       if (fisnosToDelete.length > 0) {
-        const { error: deleteOrdersError } = await supabase.from("orders").delete().in("fisno", fisnosToDelete);
+        const { error: deleteOrdersError } = await supabase
+          .from("orders")
+          .delete()
+          .in("fisno", fisnosToDelete);
         if (deleteOrdersError) {
           console.error("Orders silme hatası:", deleteOrdersError);
           return res.status(500).json({ message: "Orders silme hatası: " + deleteOrdersError.message });
         }
 
-        const { error: deleteItemsError } = await supabase.from("order_items").delete().in("fisno", fisnosToDelete);
+        const { error: deleteItemsError } = await supabase
+          .from("order_items")
+          .delete()
+          .in("fisno", fisnosToDelete);
         if (deleteItemsError) {
           console.error("Order_items silme hatası:", deleteItemsError);
           return res.status(500).json({ message: "Order_items silme hatası: " + deleteItemsError.message });
         }
 
-        const { error: deleteSelectionsError } = await supabase.from("order_item_selections").delete().in("fisno", fisnosToDelete);
+        const { error: deleteSelectionsError } = await supabase
+          .from("order_item_selections")
+          .delete()
+          .in("fisno", fisnosToDelete);
         if (deleteSelectionsError) {
           console.error("Order_item_selections silme hatası:", deleteSelectionsError);
           return res.status(500).json({ message: "Order_item_selections silme hatası: " + deleteSelectionsError.message });
@@ -168,52 +182,57 @@ export default async function handler(req, res) {
       console.warn("latestFisnos dizisi boş, silme işlemi atlandı.");
     }
 
+    // --- Bildirim gönderme bölümü ---
+    const { data: subscriptions, error: subError } = await supabase
+      .from("push_subscriptions")
+      .select("*");
 
+    if (subError) {
+      console.error("Abonelikler çekilemedi:", subError);
+    } else if (subscriptions.length > 0 && uniqueOrders.length > 0) {
+      const latestOrder = uniqueOrders[0];
+	  const payload = {
+	    title: "Yeni Sipariş Geldi!",
+	    body: `Sipariş No: ${latestOrder.fisno}`,
+  	    url: `/?fisno=${latestOrder.fisno}`,
+	  };
 
-// --- Bildirim gönderme bölümü ---
-const { data: subscriptions, error: subError } = await supabase.from('push_subscriptions').select('*');
+      await Promise.allSettled(
+        subscriptions.map(async (sub) => {
+          if (!sub.subscription) return;
 
-if (subError) {
-  console.error("Abonelikler çekilemedi:", subError);
-} else if (subscriptions.length > 0 && uniqueOrders.length > 0) {
-  const latestOrder = uniqueOrders[0];
-  const payload = {
-    title: "Yeni Sipariş Geldi!",
-    body: `Sipariş No: ${latestOrder.fisno}`,
-    url: "/",
-  };
+          let subscriptionObj = sub.subscription;
+          if (typeof subscriptionObj === "string") {
+            try {
+              subscriptionObj = JSON.parse(subscriptionObj);
+            } catch {
+              return; // Parse hatası varsa atla
+            }
+          }
 
-  await Promise.allSettled(
-    subscriptions.map(async (sub) => {
-      if (!sub.subscription) return;
-      let subscriptionObj = sub.subscription;
-      if (typeof subscriptionObj === 'string') {
-        try {
-          subscriptionObj = JSON.parse(subscriptionObj);
-        } catch {
-          return; // Parse hatası varsa atla
-        }
-      }
-      try {
-        await sendPushNotification(subscriptionObj, payload);
-      } catch (e) {
-        const statusCode = e.statusCode || e.status || 0;
-        if (statusCode === 410 || statusCode === 404) {
-          console.log(`Abonelik geçersiz, siliniyor: ${subscriptionObj.endpoint}`);
-          const { error: delError } = await supabase
-            .from('push_subscriptions')
-            .delete()
-            .eq('endpoint', subscriptionObj.endpoint);
-          if (delError) console.error('Abonelik silme hatası:', delError);
-        } else {
-          console.error('Bildirim gönderme hatası:', e);
-        }
-      }
-    })
-  );
-}
+          try {
+            await sendPushNotification(subscriptionObj, payload);
+          } catch (e) {
+            const statusCode = e.statusCode || e.status || 0;
+            if (statusCode === 410 || statusCode === 404) {
+              console.log(`Abonelik geçersiz, siliniyor: ${subscriptionObj.endpoint}`);
+              const { error: delError } = await supabase
+                .from("push_subscriptions")
+                .delete()
+                .eq("endpoint", subscriptionObj.endpoint);
+              if (delError) console.error("Abonelik silme hatası:", delError);
+            } else {
+              console.error("Bildirim gönderme hatası:", e);
+            }
+          }
+        })
+      );
+    }
 
-    return res.status(200).json({ message: "Siparişler başarıyla güncellendi, eski fişler temizlendi ve bildirimler gönderildi!" });
+    return res.status(200).json({
+      message:
+        "Siparişler başarıyla güncellendi, eski fişler temizlendi ve bildirimler gönderildi!",
+    });
   } catch (err) {
     console.error("Hata:", err);
     return res.status(500).json({ message: "Sunucu hatası: " + err.message });
