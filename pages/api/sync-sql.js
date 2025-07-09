@@ -227,6 +227,11 @@ export default async function handler(req, res) {
           }
         })
       );
+	  
+	    await supabase
+    .from('orders')
+    .update({ push_sent: true })
+    .eq('fisno', latestOrder.fisno);
     }
 
     return res.status(200).json({
