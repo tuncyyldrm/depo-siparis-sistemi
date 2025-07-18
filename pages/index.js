@@ -203,8 +203,6 @@ function urlBase64ToUint8Array(base64String) {
       setStatus('');
     }
   };
-
-
 const handlePrint = () => {
   if (!selectedFisno) {
     alert('Lütfen önce bir fiş seçin!');
@@ -234,168 +232,107 @@ const handlePrint = () => {
     return sum + (parseFloat(item.sthar_gcmik) || 0);
   }, 0);
 
-  const htmlContent = `
-    <html>
-    <head>
-      <title>Sipariş Hazırlama Fişi - ${selectedFisno}</title>
-      <style>
-        * {
-          box-sizing: border-box;
-        }
-        body {
-          font-family: Arial, sans-serif;
-          color: #000;
-          margin: 20px;
-        }
-        header {
-          border-bottom: 2px solid #000;
-          padding-bottom: 10px;
-          margin-bottom: 15px;
-        }
-        .header-top {
-          display: flex;
-          justify-content: space-between;
-          font-size: 16px;
-          font-weight: bold;
-        }
-        .header-info {
-          margin-top: 10px;
-          font-size: 14px;
-        }
-        .header-info div {
-          margin: 3px 0;
-          white-space: normal;
-          word-wrap: break-word;
-        }
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 13px;
-        }
-        thead {
-          display: table-header-group;
-        }
-        tfoot {
-          display: table-row-group;
-        }
-        tbody tr {
-          page-break-inside: avoid;
-          break-inside: avoid;
-        }
-        th, td {
-          border: 1px solid #444;
-          padding: 5px 8px;
-        }
-        thead th {
-          background-color: #f0f0f0;
-          font-weight: bold;
-        }
+  const htmlContent = `<!DOCTYPE html>
+  <html><head><meta charset="UTF-8"><title>Sipariş Hazırlama Fişi - ${selectedFisno}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; color: #000; margin: 20px; font-size: 13px; }
+    header { border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px; }
+    .header-top { display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; }
+    .header-info { margin-top: 10px; font-size: 14px; }
+    .header-info div { margin: 3px 0; word-wrap: break-word; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead { display: table-header-group; }
+    tfoot { display: table-row-group; }
+    tbody tr { page-break-inside: avoid; break-inside: avoid; }
+    th, td { border: 1px solid #444; padding: 5px 8px; }
+    thead th { background-color: #f0f0f0; font-weight: bold; }
+    th.col-stok, td.col-stok { width: 25%; text-align: left; }
+    th.col-note, td.col-note { width: 15%; text-align: left; }
+    th.col-miktar, td.col-miktar, th.col-depomiktar, td.col-depomiktar, th.col-birimfiyat, td.col-birimfiyat, th.col-toplam, td.col-toplam { text-align: right; }
+    th.col-miktar, td.col-miktar { width: 10%; }
+    th.col-depomiktar, td.col-depomiktar { width: 10%; }
+    th.col-raf, td.col-raf { width: 10%; text-align: left; }
+    th.col-birimfiyat, td.col-birimfiyat { width: 15%; }
+    th.col-toplam, td.col-toplam { width: 15%; }
+    tfoot td { font-weight: bold; font-size: 14px; border: none; text-align: right; padding-top: 8px; }
+    @media print {
+      @page { margin: 1.5cm; }
+      body { font-size: 11pt; margin: 0; }
+      header { position: relative; background: none; padding-bottom: 10px; border-bottom: 1px solid #000; }
+      tr.break-after { page-break-after: always; }
+    }
+  </style>
+  </head><body>
+    <header>
+      <div class="header-top">
+        <div>Fiş No: ${selectedFisno}</div>
+        <div>Tarih: ${tarihSaat}</div>
+      </div>
+      <div class="header-info">
+        <div><strong>Cari Kod:</strong> ${rawCariKod}</div>
+        <div><strong>Cari İsim:</strong> ${cariIsim}</div>
+        <div><strong>Not:</strong> ${siparis_notu}</div>
+      </div>
+    </header>
 
-        th.col-stok, td.col-stok { width: 25%; text-align: left; }
-        th.col-note, td.col-note { width: 15%; text-align: left; }
-        th.col-miktar, td.col-miktar,
-        th.col-depomiktar, td.col-depomiktar,
-        th.col-birimfiyat, td.col-birimfiyat,
-        th.col-toplam, td.col-toplam {
-          text-align: right;
-        }
-        th.col-miktar, td.col-miktar { width: 10%; }
-        th.col-depomiktar, td.col-depomiktar { width: 10%; }
-        th.col-raf, td.col-raf { width: 10%; text-align: left; }
-        th.col-birimfiyat, td.col-birimfiyat { width: 15%; }
-        th.col-toplam, td.col-toplam { width: 15%; }
+    <table>
+      <thead>
+        <tr>
+          <th class="col-stok">Stok Kodu</th>
+          <th class="col-note">Not</th>
+          <th class="col-miktar">Miktar</th>
+          <th class="col-depomiktar">Depo Miktar</th>
+          <th class="col-raf">Raf</th>
+          <th class="col-birimfiyat">Birim Fiyat</th>
+          <th class="col-toplam">Toplam</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${selectedItems.map((item, i) => {
+          const birimFiyat = parseFloat(item.sthar_bf) || 0;
+          const miktar = parseFloat(item.sthar_gcmik) || 0;
+          const toplam = (birimFiyat * miktar).toFixed(2);
+          const breakClass = ((i + 1) % 30 === 0) ? 'break-after' : '';
+          return `
+            <tr class="${breakClass}">
+              <td class="col-stok">${item.stok_kodu}</td>
+              <td class="col-note"></td>
+              <td class="col-miktar">${miktar}</td>
+              <td class="col-depomiktar">${item.depo_miktar ?? '-'}</td>
+              <td class="col-raf">${item.KOD_5 ?? '-'}</td>
+              <td class="col-birimfiyat">${birimFiyat.toFixed(2)}</td>
+              <td class="col-toplam">${toplam}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2">Toplam Ürün Adedi:</td>
+          <td>${toplamUrunAdedi}</td>
+          <td colspan="3">Toplam Fiyat:</td>
+          <td>${toplamFiyat} ₺</td>
+        </tr>
+      </tfoot>
+    </table>
+  </body></html>`;
 
-        tfoot td {
-          font-weight: bold;
-          font-size: 14px;
-          border: none;
-          text-align: right;
-          padding-top: 8px;
-        }
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-        @media print {
-          @page {
-            margin: 2cm;
-          }
-
-          body {
-            font-size: 11pt;
-            margin: 0;
-          }
-
-          header {
-            position: relative;
-            background: none;
-            padding: 0 0 10px 0;
-            border-bottom: 1px solid #000;
-          }
-
-          tr.break-after {
-            page-break-after: always;
-          }
-
-          body::before {
-            display: none;
-          }
-        }
-      </style>
-    </head>
-    <body>
-      <header>
-        <div class="header-top">
-          <div>Fiş No: ${selectedFisno}</div>
-          <div>Tarih: ${tarihSaat}</div>
-        </div>
-        <div class="header-info">
-          <div><strong>Cari Kod:</strong> ${rawCariKod}</div>
-          <div><strong>Cari İsim:</strong> ${cariIsim}</div>
-          <div><strong>Not:</strong> ${siparis_notu}</div>
-        </div>
-      </header>
-
-      <table>
-        <thead>
-          <tr>
-            <th class="col-stok">Stok Kodu</th>
-            <th class="col-note">Not</th>
-            <th class="col-miktar">Miktar</th>
-            <th class="col-depomiktar">Depo Miktar</th>
-            <th class="col-raf">Raf</th>
-            <th class="col-birimfiyat">Birim Fiyat</th>
-            <th class="col-toplam">Toplam</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${selectedItems.map((item, i) => {
-            const birimFiyat = parseFloat(item.sthar_bf) || 0;
-            const miktar = parseFloat(item.sthar_gcmik) || 0;
-            const toplam = (birimFiyat * miktar).toFixed(2);
-            const breakClass = ((i + 1) % 30 === 0) ? 'break-after' : '';
-            return `
-              <tr class="${breakClass}">
-                <td class="col-stok">${item.stok_kodu}</td>
-                <td class="col-note"></td>
-                <td class="col-miktar">${miktar}</td>
-                <td class="col-depomiktar">${item.depo_miktar ?? '-'}</td>
-                <td class="col-raf">${item.KOD_5 ?? '-'}</td>
-                <td class="col-birimfiyat">${birimFiyat.toFixed(2)}</td>
-                <td class="col-toplam">${toplam}</td>
-              </tr>
-            `;
-          }).join('')}
-        </tbody>
-        <tfoot>
-          <tr>
-            <td colspan="2">Toplam Ürün Adedi:</td>
-            <td>${toplamUrunAdedi}</td>
-            <td colspan="3">Toplam Fiyat:</td>
-            <td>${toplamFiyat} ₺</td>
-          </tr>
-        </tfoot>
-      </table>
-    </body>
-    </html>
-  `;
+  if (isMobile) {
+    const usePDF = confirm("Mobil cihaz algılandı. Yazdırma sorunlu olabilir.\nPDF olarak kaydetmek ister misiniz?");
+    if (usePDF) {
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `SiparisFis_${selectedFisno}.html`; // Alternatif: .pdf için PDF kütüphanesi gerekir
+      a.click();
+      URL.revokeObjectURL(url);
+      return;
+    }
+  }
 
   const printWindow = window.open('', '', 'width=900,height=700');
   printWindow.document.write(htmlContent);
@@ -405,7 +342,7 @@ const handlePrint = () => {
   setTimeout(() => {
     printWindow.print();
     printWindow.close();
-  }, 800); // Çok veri varsa 500 yerine 800ms bekletilebilir
+  }, 800);
 };
 
 
