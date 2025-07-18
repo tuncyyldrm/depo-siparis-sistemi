@@ -204,7 +204,7 @@ function urlBase64ToUint8Array(base64String) {
     }
   };
   
-const handlePrint = () => {
+const handlePrint = async () => {
   if (!selectedFisno) {
     alert('Lütfen önce bir fiş seçin!');
     return;
@@ -233,38 +233,30 @@ const handlePrint = () => {
     return sum + (parseFloat(item.sthar_gcmik) || 0);
   }, 0);
 
-  const htmlContent = `<!DOCTYPE html>
-  <html><head><meta charset="UTF-8"><title>Sipariş Hazırlama Fişi - ${selectedFisno}</title>
-  <style>
-    * { box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; color: #000; margin: 20px; font-size: 13px; }
-    header { border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px; }
-    .header-top { display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; }
-    .header-info { margin-top: 10px; font-size: 14px; }
-    .header-info div { margin: 3px 0; word-wrap: break-word; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    thead { display: table-header-group; }
-    tfoot { display: table-row-group; }
-    tbody tr { page-break-inside: avoid; break-inside: avoid; }
-    th, td { border: 1px solid #444; padding: 5px 8px; }
-    thead th { background-color: #f0f0f0; font-weight: bold; }
-    th.col-stok, td.col-stok { width: 25%; text-align: left; }
-    th.col-note, td.col-note { width: 15%; text-align: left; }
-    th.col-miktar, td.col-miktar, th.col-depomiktar, td.col-depomiktar, th.col-birimfiyat, td.col-birimfiyat, th.col-toplam, td.col-toplam { text-align: right; }
-    th.col-miktar, td.col-miktar { width: 10%; }
-    th.col-depomiktar, td.col-depomiktar { width: 10%; }
-    th.col-raf, td.col-raf { width: 10%; text-align: left; }
-    th.col-birimfiyat, td.col-birimfiyat { width: 15%; }
-    th.col-toplam, td.col-toplam { width: 15%; }
-    tfoot td { font-weight: bold; font-size: 14px; border: none; text-align: right; padding-top: 8px; }
-    @media print {
-      @page { margin: 1.5cm; }
-      body { font-size: 11pt; margin: 0; }
-      header { position: relative; background: none; padding-bottom: 10px; border-bottom: 1px solid #000; }
-      tr.break-after { page-break-after: always; }
-    }
-  </style>
-  </head><body>
+  const htmlContent = `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Sipariş Hazırlama Fişi - ${selectedFisno}</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { font-family: Arial, sans-serif; font-size: 13px; margin: 20px; color: #000; }
+      header { border-bottom: 2px solid #000; margin-bottom: 15px; padding-bottom: 10px; }
+      .header-top { display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; }
+      .header-info div { margin: 4px 0; }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      th, td { border: 1px solid #444; padding: 6px 8px; }
+      th { background: #f0f0f0; }
+      tbody tr { page-break-inside: avoid; break-inside: avoid; }
+      tfoot td { font-weight: bold; text-align: right; border: none; font-size: 14px; }
+      @media print {
+        @page { margin: 1.5cm; }
+        body { font-size: 12pt; }
+      }
+    </style>
+  </head>
+  <body>
     <header>
       <div class="header-top">
         <div>Fiş No: ${selectedFisno}</div>
@@ -279,32 +271,30 @@ const handlePrint = () => {
     <table>
       <thead>
         <tr>
-          <th class="col-stok">Stok Kodu</th>
-          <th class="col-note">Not</th>
-          <th class="col-miktar">Miktar</th>
-          <th class="col-depomiktar">Depo Miktar</th>
-          <th class="col-raf">Raf</th>
-          <th class="col-birimfiyat">Birim Fiyat</th>
-          <th class="col-toplam">Toplam</th>
+          <th>Stok Kodu</th>
+          <th>Not</th>
+          <th>Miktar</th>
+          <th>Depo Miktar</th>
+          <th>Raf</th>
+          <th>Birim Fiyat</th>
+          <th>Toplam</th>
         </tr>
       </thead>
       <tbody>
-        ${selectedItems.map((item, i) => {
+        ${selectedItems.map(item => {
           const birimFiyat = parseFloat(item.sthar_bf) || 0;
           const miktar = parseFloat(item.sthar_gcmik) || 0;
           const toplam = (birimFiyat * miktar).toFixed(2);
-          const breakClass = ((i + 1) % 30 === 0) ? 'break-after' : '';
           return `
-            <tr class="${breakClass}">
-              <td class="col-stok">${item.stok_kodu}</td>
-              <td class="col-note"></td>
-              <td class="col-miktar">${miktar}</td>
-              <td class="col-depomiktar">${item.depo_miktar ?? '-'}</td>
-              <td class="col-raf">${item.KOD_5 ?? '-'}</td>
-              <td class="col-birimfiyat">${birimFiyat.toFixed(2)}</td>
-              <td class="col-toplam">${toplam}</td>
-            </tr>
-          `;
+            <tr>
+              <td>${item.stok_kodu}</td>
+              <td></td>
+              <td style="text-align:right">${miktar}</td>
+              <td style="text-align:right">${item.depo_miktar ?? '-'}</td>
+              <td>${item.KOD_5 ?? '-'}</td>
+              <td style="text-align:right">${birimFiyat.toFixed(2)}</td>
+              <td style="text-align:right">${toplam}</td>
+            </tr>`;
         }).join('')}
       </tbody>
       <tfoot>
@@ -316,33 +306,42 @@ const handlePrint = () => {
         </tr>
       </tfoot>
     </table>
-  </body></html>`;
+  </body>
+  </html>`;
 
-  // Mobil tarayıcı kontrolü
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   try {
-    const printWindow = window.open('');
-    if (!printWindow) {
-      alert("Yeni pencere açılamadı. Lütfen pop-up engelleyiciyi devre dışı bırakın.");
-      return;
+    if (isMobile) {
+      // Mobilde yeni sekmede PDF önizlemesi
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const newTab = window.open(url, '_blank');
+      if (!newTab) {
+        alert("Yeni sekme açılamadı. Lütfen pop-up engelleyiciyi devre dışı bırakın.");
+        return;
+      }
+
+    } else {
+      // Masaüstü: doğrudan yazdır
+      const printWindow = window.open('', '', 'width=900,height=700');
+      if (!printWindow) {
+        alert("Yazdırma penceresi açılamadı. Pop-up engelleyiciyi kontrol edin.");
+        return;
+      }
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 800);
     }
-
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-
-
-    // Masaüstü için otomatik yazdır
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 800);
-  } catch (err) {
-    alert("Yazdırma işlemi desteklenmiyor. Alternatif olarak ekran görüntüsü alabilirsiniz.");
+  } catch (e) {
+    alert("Yazdırma desteklenmiyor. Alternatif olarak ekran görüntüsü alabilirsiniz.");
+    console.error(e);
   }
 };
-
 
   const handleShare = () => {
     const shareUrl = window.location.href;
