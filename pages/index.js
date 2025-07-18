@@ -203,6 +203,7 @@ function urlBase64ToUint8Array(base64String) {
       setStatus('');
     }
   };
+  
 const handlePrint = () => {
   if (!selectedFisno) {
     alert('Lütfen önce bir fiş seçin!');
@@ -275,7 +276,6 @@ const handlePrint = () => {
         <div><strong>Not:</strong> ${siparis_notu}</div>
       </div>
     </header>
-
     <table>
       <thead>
         <tr>
@@ -318,34 +318,30 @@ const handlePrint = () => {
     </table>
   </body></html>`;
 
+  // Mobil tarayıcı kontrolü
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  if (isMobile) {
-    const usePDF = confirm("Mobil cihaz algılandı. Yazdırma sorunlu olabilir.\nPDF olarak kaydetmek ister misiniz?");
-    if (usePDF) {
-      const blob = new Blob([htmlContent], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `SiparisFis_${selectedFisno}.html`; // Alternatif: .pdf için PDF kütüphanesi gerekir
-      a.click();
-      URL.revokeObjectURL(url);
+  try {
+    const printWindow = window.open('');
+    if (!printWindow) {
+      alert("Yeni pencere açılamadı. Lütfen pop-up engelleyiciyi devre dışı bırakın.");
       return;
     }
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+
+
+    // Masaüstü için otomatik yazdır
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 800);
+  } catch (err) {
+    alert("Yazdırma işlemi desteklenmiyor. Alternatif olarak ekran görüntüsü alabilirsiniz.");
   }
-
-  const printWindow = window.open('', '', 'width=900,height=700');
-  printWindow.document.write(htmlContent);
-  printWindow.document.close();
-  printWindow.focus();
-
-  setTimeout(() => {
-    printWindow.print();
-    printWindow.close();
-  }, 800);
 };
-
-
 
 
   const handleShare = () => {
