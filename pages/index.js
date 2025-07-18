@@ -205,7 +205,6 @@ function urlBase64ToUint8Array(base64String) {
   };
 
 
-
 const handlePrint = () => {
   if (!selectedFisno) {
     alert('Lütfen önce bir fiş seçin!');
@@ -240,6 +239,9 @@ const handlePrint = () => {
     <head>
       <title>Sipariş Hazırlama Fişi - ${selectedFisno}</title>
       <style>
+        * {
+          box-sizing: border-box;
+        }
         body {
           font-family: Arial, sans-serif;
           color: #000;
@@ -268,8 +270,17 @@ const handlePrint = () => {
         table {
           width: 100%;
           border-collapse: collapse;
-          margin-top: 0;
           font-size: 13px;
+        }
+        thead {
+          display: table-header-group;
+        }
+        tfoot {
+          display: table-row-group;
+        }
+        tbody tr {
+          page-break-inside: avoid;
+          break-inside: avoid;
         }
         th, td {
           border: 1px solid #444;
@@ -279,6 +290,7 @@ const handlePrint = () => {
           background-color: #f0f0f0;
           font-weight: bold;
         }
+
         th.col-stok, td.col-stok { width: 25%; text-align: left; }
         th.col-note, td.col-note { width: 15%; text-align: left; }
         th.col-miktar, td.col-miktar,
@@ -302,29 +314,28 @@ const handlePrint = () => {
         }
 
         @media print {
-		  tr.break-after {
-			page-break-after: always;
-		  }
           @page {
             margin: 2cm;
           }
+
           body {
-            margin: 0;
             font-size: 11pt;
+            margin: 0;
           }
+
           header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: #fff;
-            padding:0 0 20px 0;
+            position: relative;
+            background: none;
+            padding: 0 0 10px 0;
             border-bottom: 1px solid #000;
           }
+
+          tr.break-after {
+            page-break-after: always;
+          }
+
           body::before {
-            content: "";
-            display: block;
-            height: 130px; /* header boşluğu */
+            display: none;
           }
         }
       </style>
@@ -354,28 +365,28 @@ const handlePrint = () => {
             <th class="col-toplam">Toplam</th>
           </tr>
         </thead>
-		<tbody>
-		  ${selectedItems.map((item, i) => {
-			const birimFiyat = parseFloat(item.sthar_bf) || 0;
-			const miktar = parseFloat(item.sthar_gcmik) || 0;
-			const toplam = (birimFiyat * miktar).toFixed(2);
-			const breakClass = ((i + 1) % 30 === 0) ? 'break-after' : ''; // her 30 satırda bir
-			return `
-			  <tr class="${breakClass}">
-				<td class="col-stok">${item.stok_kodu}</td>
-				<td class="col-note"></td>
-				<td class="col-miktar">${miktar}</td>
-				<td class="col-depomiktar">${item.depo_miktar ?? '-'}</td>
-				<td class="col-raf">${item.KOD_5 ?? '-'}</td>
-				<td class="col-birimfiyat">${birimFiyat.toFixed(2)}</td>
-				<td class="col-toplam">${toplam}</td>
-			  </tr>
-			`;
-		  }).join('')}
-		</tbody>
-		<tfoot>
-			<tr>
-			<td colspan="2">Toplam Ürün Adedi:</td>
+        <tbody>
+          ${selectedItems.map((item, i) => {
+            const birimFiyat = parseFloat(item.sthar_bf) || 0;
+            const miktar = parseFloat(item.sthar_gcmik) || 0;
+            const toplam = (birimFiyat * miktar).toFixed(2);
+            const breakClass = ((i + 1) % 30 === 0) ? 'break-after' : '';
+            return `
+              <tr class="${breakClass}">
+                <td class="col-stok">${item.stok_kodu}</td>
+                <td class="col-note"></td>
+                <td class="col-miktar">${miktar}</td>
+                <td class="col-depomiktar">${item.depo_miktar ?? '-'}</td>
+                <td class="col-raf">${item.KOD_5 ?? '-'}</td>
+                <td class="col-birimfiyat">${birimFiyat.toFixed(2)}</td>
+                <td class="col-toplam">${toplam}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="2">Toplam Ürün Adedi:</td>
             <td>${toplamUrunAdedi}</td>
             <td colspan="3">Toplam Fiyat:</td>
             <td>${toplamFiyat} ₺</td>
@@ -394,8 +405,9 @@ const handlePrint = () => {
   setTimeout(() => {
     printWindow.print();
     printWindow.close();
-  }, 500);
+  }, 800); // Çok veri varsa 500 yerine 800ms bekletilebilir
 };
+
 
 
 
