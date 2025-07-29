@@ -291,7 +291,7 @@ const handlePrint = async () => {
               <td></td>
               <td style="text-align:right">${miktar}</td>
               <td style="text-align:right">${item.depo_miktar ?? '-'}</td>
-              <td>${item.KOD_5 ?? '-'}</td>
+              <td>${item.kod_5 ?? '-'}</td>
               <td style="text-align:right">${birimFiyat.toFixed(2)}</td>
               <td style="text-align:right">${toplam}</td>
             </tr>`;
