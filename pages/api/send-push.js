@@ -34,12 +34,11 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: error.message });
   }
 
-const payload = JSON.stringify({
-  title: title || 'Yeni Sipariş!',
-  body: body || 'Yeni sipariş geldi!',
-  icon: 'https://depo-siparis-sistemi.vercel.app/icon.png',
-  url: url || '/'
-});
+  const payload = JSON.stringify({
+    title,
+    body,
+    url: url || '/', // URL yoksa ana sayfaya yönlendir
+  });
 
   const results = await Promise.allSettled(
     subscriptions.map(async ({ subscription }) => {
