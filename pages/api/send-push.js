@@ -37,7 +37,7 @@ export default async function handler(req, res) {
 const payload = JSON.stringify({
   title: title || 'Yeni Sipariş!',
   body: body || 'Yeni sipariş geldi!',
-  icon: 'https://depo-siparis-sistemi.vercel.app/icon.png'',
+  icon: 'https://depo-siparis-sistemi.vercel.app/icon.png',
   url: url || '/'
 });
 
