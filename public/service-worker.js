@@ -2,13 +2,12 @@ self.addEventListener('push', event => {
   const data = event.data.json();
 
   const options = {
-    body: data.body,
-    icon: '/icon.png', // dikkat çekici bir ikon ekle
-    badge: '/badge.png', // küçük simge
-    vibrate: [200, 100, 200], // titreşim (mobilde)
+    body: data.body,  // Burada body var mı kontrol et
+	icon: "/icon.png",
+    badge: "/badge.png",
+	vibrate: [300, 100, 300], // Titreşim efekti (mobil)
     data: {
-      url: data.url,
-      sound: true // özel işaretleme
+      url: data.url   // Link tıklamada kullanılıyor mu?
     }
   };
 
