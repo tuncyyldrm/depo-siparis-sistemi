@@ -23,7 +23,17 @@ self.addEventListener('fetch', event => {
 });
 
 self.addEventListener('push', event => {
-  const data = event.data?.json() || {};
+  let data = {};
+  try {
+    data = event.data?.json() || {};
+  } catch (e) {
+    console.error('Push verisi JSON parse edilemedi:', e);
+  }
+
+  if (!data.title && !data.body) {
+    console.log('Bildirim verisi yok, gösterilmiyor.');
+    return;
+  }
 
   const options = {
     body: data.body || 'Yeni bir güncelleme var.',
@@ -35,13 +45,19 @@ self.addEventListener('push', event => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Depo Sipariş Sistemi', options)
+    self.registration.showNotification(data.title, options)
   );
 });
 
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   event.waitUntil(
-    clients.openWindow(event.notification.data.url)
+    clients.matchAll({ type: 'window' }).then(clientList => {
+      for (const client of clientList) {
+        if (client.url === event.notification.data.url && 'focus' in client)
+          return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow(event.notification.data.url);
+    })
   );
 });
