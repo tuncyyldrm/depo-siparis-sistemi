@@ -3,8 +3,6 @@ self.addEventListener('push', event => {
 
   const options = {
     body: data.body,  // Burada body var mı kontrol et
-	icon: "/icon.png",
-    badge: "/badge.png",
     data: {
       url: data.url   // Link tıklamada kullanılıyor mu?
     }
