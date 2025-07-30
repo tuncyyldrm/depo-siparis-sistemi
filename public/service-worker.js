@@ -5,7 +5,6 @@ self.addEventListener('push', event => {
     body: data.body,  // Burada body var mı kontrol et
 	icon: "/icon.png",
     badge: "/badge.png",
-	vibrate: [300, 100, 300], // Titreşim efekti (mobil)
     data: {
       url: data.url   // Link tıklamada kullanılıyor mu?
     }
