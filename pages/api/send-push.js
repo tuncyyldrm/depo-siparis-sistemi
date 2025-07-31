@@ -19,8 +19,8 @@ export default async function handler(req, res) {
 
   const { title, body, url, icon } = req.body;
 
-  if (!title || !body) {
-    return res.status(400).json({ error: 'title ve body alanları zorunludur.' });
+  if (!title || !body || !url) {
+    return res.status(400).json({ error: 'title, body ve url zorunludur.' });
   }
 
   const { data: subscriptions, error } = await supabase
@@ -35,31 +35,25 @@ export default async function handler(req, res) {
   const payload = JSON.stringify({
     title,
     body,
-    icon: icon || '/default-icon.png',
-    requireInteraction: true,
-    data: { url }
+    icon: icon || 'https://depo-siparis-sistemi.vercel.app/icon.png',
+    url
   });
 
   const results = await Promise.allSettled(
     subscriptions.map(async ({ subscription }) => {
-      let sub;
       try {
-        sub = typeof subscription === 'string' ? JSON.parse(subscription) : subscription;
-      } catch (err) {
-        console.warn("Abonelik JSON parse edilemedi, atlanıyor.");
-        return;
-      }
-
-      try {
-        await webPush.sendNotification(sub, payload);
+        const parsedSub = typeof subscription === 'string' ? JSON.parse(subscription) : subscription;
+        await webPush.sendNotification(parsedSub, payload);
       } catch (e) {
         const status = e.statusCode || e.status || 0;
         if (status === 410 || status === 404) {
-          console.log(`Geçersiz abonelik siliniyor: ${sub.endpoint}`);
-          await supabase
-            .from('push_subscriptions')
-            .delete()
-            .eq('endpoint', sub.endpoint);
+          const endpoint = JSON.parse(subscription)?.endpoint;
+          if (endpoint) {
+            await supabase
+              .from('push_subscriptions')
+              .delete()
+              .eq('endpoint', endpoint);
+          }
         } else {
           console.error('Bildirim gönderme hatası:', e);
         }
@@ -71,6 +65,6 @@ export default async function handler(req, res) {
     success: true,
     message: 'Bildirimler gönderildi.',
     sentCount: results.filter(r => r.status === 'fulfilled').length,
-    failedCount: results.filter(r => r.status === 'rejected').length,
+    failedCount: results.filter(r => r.status === 'rejected').length
   });
 }
