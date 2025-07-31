@@ -6,9 +6,8 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// VAPID bilgilerini ayarla
 webPush.setVapidDetails(
-  'mailto:bildirim@ornekmail.com', // Değiştir
+  'mailto:bildirim@ornekmail.com',
   process.env.VAPID_PUBLIC_KEY,
   process.env.VAPID_PRIVATE_KEY
 );
@@ -18,13 +17,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { title, body, url } = req.body;
+  const { title, body, url, icon } = req.body;
 
   if (!title || !body) {
     return res.status(400).json({ error: 'title ve body alanları zorunludur.' });
   }
 
-  // Supabase'den tüm geçerli abonelikleri al
   const { data: subscriptions, error } = await supabase
     .from('push_subscriptions')
     .select('*');
@@ -34,14 +32,13 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: error.message });
   }
 
-const payload = JSON.stringify({
-  title, // <-- Eksikti!
-  body,
-  icon: 'https://depo-siparis-sistemi.vercel.app/icon.png',
-  requireInteraction: true,
-  url: url || '/'
-});
-
+  const payload = JSON.stringify({
+    title,
+    body,
+    icon: icon || '/default-icon.png', // fallback icon
+    requireInteraction: true,
+    data: { url }
+  });
 
   const results = await Promise.allSettled(
     subscriptions.map(async ({ subscription }) => {
@@ -58,7 +55,6 @@ const payload = JSON.stringify({
       } catch (e) {
         const status = e.statusCode || e.status || 0;
         if (status === 410 || status === 404) {
-          // Abonelik geçersiz veya süresi dolmuş, sil
           console.log(`Geçersiz abonelik siliniyor: ${sub.endpoint}`);
           await supabase
             .from('push_subscriptions')
