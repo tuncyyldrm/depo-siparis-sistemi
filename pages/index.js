@@ -40,80 +40,34 @@ const regex = useMemo(() => {
   }, []);
   
   // 5. index.js (Client tarafı abone olma)
-import { useState, useEffect, useMemo } from 'react';
-import cleanTerms from '../data/cleanTerms';
+useEffect(() => {
+  if ('serviceWorker' in navigator && 'PushManager' in window) {
+    navigator.serviceWorker.register('/service-worker.js').then(async reg => {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') return;
 
-// Yardımcı fonksiyon
-function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding)
-    .replace(/-/g, '+')
-    .replace(/_/g, '/');
-  const rawData = atob(base64);
-  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
-}
+      const existing = await reg.pushManager.getSubscription();
+      if (!existing) {
+        const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+        if (!vapidKey) {
+          console.error('VAPID_PUBLIC_KEY environment variable is missing!');
+          return;
+        }
+        const convertedKey = urlBase64ToUint8Array(vapidKey);
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: convertedKey
+        });
 
-// Bildirim izni butonu
-// Bildirim izni butonu bileşeni
-function NotificationPermissionButton() {
-  const [permission, setPermission] = useState(Notification.permission);
-
-  const subscribePush = async () => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      alert('Tarayıcınız push bildirimleri desteklemiyor.');
-      return;
-    }
-
-    try {
-      const reg = await navigator.serviceWorker.register('/service-worker.js');
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      if (!vapidKey) {
-        alert('VAPID anahtarı bulunamadı!');
-        return;
+        await fetch('/api/save-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(sub)
+        });
       }
-      const convertedKey = urlBase64ToUint8Array(vapidKey);
-      const subscription = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: convertedKey,
-      });
-
-      const res = await fetch('/api/save-subscription', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(subscription),
-      });
-
-      if (!res.ok) {
-        alert('Abonelik kaydı başarısız.');
-        return;
-      }
-      alert('Push aboneliği başarıyla yapıldı!');
-    } catch (error) {
-      alert('Abonelik sırasında hata: ' + error.message);
-      console.error(error);
-    }
-  };
-
-  const requestPermission = async () => {
-    if (!('Notification' in window)) {
-      alert('Tarayıcınız bildirimleri desteklemiyor.');
-      return;
-    }
-    const perm = await Notification.requestPermission();
-    setPermission(perm);
-    if (perm === 'granted') {
-      await subscribePush();
-    } else {
-      alert('Bildirim izni reddedildi veya kapatıldı.');
-    }
-  };
-
-  if (permission === 'granted') return <p>Bildirim izni verildi.</p>;
-
-  return <button onClick={requestPermission}>Bildirim İzni Ver</button>;
-}
-
-
+    });
+  }
+}, []);
 
 
 // 6. Yardımcı fonksiyon
