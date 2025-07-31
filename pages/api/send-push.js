@@ -34,14 +34,14 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: error.message });
   }
 
-  const payload = JSON.stringify({
-    body: data.body,  // Burada body var mı kontrol et
-	  icon: 'https://depo-siparis-sistemi.vercel.app/icon.png',
-	  requireInteraction: true, // kullanıcı kapatana kadar göster
-    data: {
-      url: data.url   // Link tıklamada kullanılıyor mu?
-    }
-  };
+const payload = JSON.stringify({
+  title, // <-- Eksikti!
+  body,
+  icon: 'https://depo-siparis-sistemi.vercel.app/icon.png',
+  requireInteraction: true,
+  url: url || '/'
+});
+
 
   const results = await Promise.allSettled(
     subscriptions.map(async ({ subscription }) => {
