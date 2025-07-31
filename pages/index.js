@@ -54,6 +54,7 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 // Bildirim izni butonu
+// Bildirim izni butonu bileşeni
 function NotificationPermissionButton() {
   const [permission, setPermission] = useState(Notification.permission);
 
@@ -70,11 +71,10 @@ function NotificationPermissionButton() {
         alert('VAPID anahtarı bulunamadı!');
         return;
       }
-
       const convertedKey = urlBase64ToUint8Array(vapidKey);
       const subscription = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: convertedKey
+        applicationServerKey: convertedKey,
       });
 
       const res = await fetch('/api/save-subscription', {
@@ -87,7 +87,6 @@ function NotificationPermissionButton() {
         alert('Abonelik kaydı başarısız.');
         return;
       }
-
       alert('Push aboneliği başarıyla yapıldı!');
     } catch (error) {
       alert('Abonelik sırasında hata: ' + error.message);
@@ -100,7 +99,6 @@ function NotificationPermissionButton() {
       alert('Tarayıcınız bildirimleri desteklemiyor.');
       return;
     }
-
     const perm = await Notification.requestPermission();
     setPermission(perm);
     if (perm === 'granted') {
@@ -115,21 +113,6 @@ function NotificationPermissionButton() {
   return <button onClick={requestPermission}>Bildirim İzni Ver</button>;
 }
 
-export default function Home() {
-  // Home bileşeninizin kodu burada devam eder
-  // useState, useEffect, fetchOrders vs.
-
-  return (
-    <main>
-      {/* Diğer bileşenler ve UI */}
-
-      {/* Bildirim izni butonunu ekleyin */}
-      <NotificationPermissionButton />
-
-      {/* Diğer içerikler */}
-    </main>
-  );
-}
 
 
 
