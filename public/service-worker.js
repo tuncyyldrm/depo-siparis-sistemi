@@ -1,19 +1,35 @@
 self.addEventListener('push', event => {
-  const data = event.data.json();
+  console.log('[SW] Push event verisi:', event.data && event.data.text());
+
+  let data = { title: 'Yeni bildirim', body: 'İçerik yok', url: '/' };
+
+  try {
+    if (event.data) {
+      const json = event.data.json();
+      data.title = json.title || data.title;
+      data.body = json.body || data.body;
+      data.url = json.url || data.url;
+    }
+  } catch (e) {
+    console.error('[SW] JSON parse hatası:', e);
+  }
 
   const options = {
-    body: data.body,  // Burada body var mı kontrol et
-	icon: 'https://depo-siparis-sistemi.vercel.app/icon.png',
-	requireInteraction: true, // kullanıcı kapatana kadar göster
-    data: {
-      url: data.url   // Link tıklamada kullanılıyor mu?
-    }
+    body: data.body,
+    icon: 'https://depo-siparis-sistemi.vercel.app/icon.png',
+    requireInteraction: true,
+    data: { url: data.url }
   };
 
+  // push her durumda bir bildirimle sonlansın:
   event.waitUntil(
     self.registration.showNotification(data.title, options)
+      .catch(err => {
+        console.error('[SW] Bildirim gösterilemedi:', err);
+      })
   );
 });
+
 
 self.addEventListener('notificationclick', event => {
   event.notification.close();
