@@ -17,7 +17,22 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { title, body, url, icon } = req.body;
+let data = { title: 'Bildirim', body: '', url: '/' };
+if (event.data) {
+  try {
+    data = event.data.json();
+  } catch {}
+}
+const options = {
+  body: data.body || '',
+  icon: 'https://depo-siparis-sistemi.vercel.app/icon.png',
+  requireInteraction: true,
+  data: {
+    url: data.url || '/'
+  }
+};
+self.registration.showNotification(data.title || 'Bildirim', options);
+
 
   if (!title || !body) {
     return res.status(400).json({ error: 'title ve body alanları zorunludur.' });
