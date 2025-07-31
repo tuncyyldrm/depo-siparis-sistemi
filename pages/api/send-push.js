@@ -39,27 +39,27 @@ export default async function handler(req, res) {
     url
   });
 
-  const results = await Promise.allSettled(
-    subscriptions.map(async ({ subscription }) => {
-      try {
-        const parsedSub = typeof subscription === 'string' ? JSON.parse(subscription) : subscription;
-        await webPush.sendNotification(parsedSub, payload);
-      } catch (e) {
-        const status = e.statusCode || e.status || 0;
-        if (status === 410 || status === 404) {
-          const endpoint = JSON.parse(subscription)?.endpoint;
-          if (endpoint) {
-            await supabase
-              .from('push_subscriptions')
-              .delete()
-              .eq('endpoint', endpoint);
-          }
-        } else {
-          console.error('Bildirim gönderme hatası:', e);
+const results = await Promise.allSettled(
+  subscriptions.map(async ({ subscription }) => {
+    try {
+      const parsedSub = typeof subscription === 'string' ? JSON.parse(subscription) : subscription;
+      await webPush.sendNotification(parsedSub, payload);
+      return { success: true };
+    } catch (e) {
+      const status = e.statusCode || e.status || 0;
+      if (status === 410 || status === 404) {
+        const endpoint = typeof subscription === 'string' ? JSON.parse(subscription)?.endpoint : subscription?.endpoint;
+        if (endpoint) {
+          await supabase
+            .from('push_subscriptions')
+            .delete()
+            .eq('endpoint', endpoint);
         }
       }
-    })
-  );
+      return { success: false, error: e.message };
+    }
+  })
+);
 
   res.status(200).json({
     success: true,
