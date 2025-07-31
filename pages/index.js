@@ -40,12 +40,23 @@ const regex = useMemo(() => {
   }, []);
   
   // 5. index.js (Client tarafı abone olma)
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import cleanTerms from '../data/cleanTerms';
 
+// Yardımcı fonksiyon
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
+// Bildirim izni butonu
 function NotificationPermissionButton() {
   const [permission, setPermission] = useState(Notification.permission);
 
-  // Abonelik fonksiyonu
   const subscribePush = async () => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
       alert('Tarayıcınız push bildirimleri desteklemiyor.');
@@ -66,7 +77,6 @@ function NotificationPermissionButton() {
         applicationServerKey: convertedKey
       });
 
-      // Aboneliği backend'e gönder
       const res = await fetch('/api/save-subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -104,6 +114,23 @@ function NotificationPermissionButton() {
 
   return <button onClick={requestPermission}>Bildirim İzni Ver</button>;
 }
+
+export default function Home() {
+  // Home bileşeninizin kodu burada devam eder
+  // useState, useEffect, fetchOrders vs.
+
+  return (
+    <main>
+      {/* Diğer bileşenler ve UI */}
+
+      {/* Bildirim izni butonunu ekleyin */}
+      <NotificationPermissionButton />
+
+      {/* Diğer içerikler */}
+    </main>
+  );
+}
+
 
 
 // 6. Yardımcı fonksiyon
