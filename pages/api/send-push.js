@@ -35,10 +35,13 @@ export default async function handler(req, res) {
   }
 
   const payload = JSON.stringify({
-    title,
-    body,
-    url: url || '/', // URL yoksa ana sayfaya yönlendir
-  });
+    body: data.body,  // Burada body var mı kontrol et
+	  icon: 'https://depo-siparis-sistemi.vercel.app/icon.png',
+	  requireInteraction: true, // kullanıcı kapatana kadar göster
+    data: {
+      url: data.url   // Link tıklamada kullanılıyor mu?
+    }
+  };
 
   const results = await Promise.allSettled(
     subscriptions.map(async ({ subscription }) => {
