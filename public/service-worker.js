@@ -3,7 +3,8 @@ self.addEventListener('push', event => {
 
   try {
     if (event.data) {
-      data = event.data.json();
+      const rawText = event.data?.text();
+      data = JSON.parse(rawText);
     }
   } catch (err) {
     console.error('Push verisi çözümlenemedi:', err);
