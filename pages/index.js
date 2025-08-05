@@ -412,16 +412,18 @@ const handlePrint = async () => {
               
               <div>
 <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginTop: '2px' }}>
+
+</div>
+<div class="fisbaslik">
   <QRCodeCanvas
     value={`${window.location.origin}?fisno=${selectedFisno}`}
-    size={124}
+    size={75}
     includeMargin={true}
     bgColor="#ffffff"
     fgColor="#000000"
     level="H"
   />
-</div>
-                  <h2>FİŞ NO: {selectedFisno}</h2>
+  <div>FİŞ NO:<h2>{selectedFisno}</h2></div></div>
                 {selectedOrder.siparis_notu && (
                   <p
                     style={{
