@@ -367,6 +367,12 @@ const handlePrint = async () => {
     }
   };
 
+  const [origin, setOrigin] = useState('');
+
+  useEffect(() => {
+    setOrigin(window.location.origin + (selectedFisno ? `?fisno=${selectedFisno}` : ''));
+  }, [selectedFisno]);
+
   const handleFisnoChange = value => {
     setSelectedFisno(value);
 
@@ -383,39 +389,26 @@ const handlePrint = async () => {
     <main className="container">
       <h1>Depo Sipariş Sistemi</h1>
 
-      <div className="actions">
-        <div class="divbuton"><button onClick={handleSync}>Yenile</button>
-        {selectedFisno && <button onClick={handleShare}>Paylaş</button>}
-        {selectedFisno && <button onClick={handlePrint}>Yazdır</button>}</div>
-
-      </div>
+<div className="actions">
+  <div className="divbuton">
+    <button onClick={handleSync}>Yenile</button>
+    {selectedFisno && <button onClick={handleShare}>Paylaş</button>}
+    {selectedFisno && <button onClick={handlePrint}>Yazdır</button>}
+  </div>
+</div>
 
       <p className="status">{status}</p>
 
-      <div>
-        {selectedFisno &&
-          (() => {
-            const selectedOrder = orders.find(o => o.fisno === selectedFisno);
-            if (!selectedOrder) return <p>Seçili fiş bulunamadı.</p>;
-
-            const cariKod = normalizeCariKod(selectedOrder.carikod || '');
-            const cariIsim = cariMap[cariKod] || 'Cari bilgi bulunamadı';
-
-            return (
-              
-              <div>
-<div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginTop: '2px' }}>
-
-</div>
-<div class="fisbaslik">
+<div className="fisbaslik">
   <QRCodeCanvas
-    value={`${window.location.origin}?fisno=${selectedFisno}`}
+    value={origin}
     size={75}
     includeMargin={true}
     bgColor="#ffffff"
     fgColor="#000000"
     level="H"
   />
+
   <div>FİŞ NO:<h2>
         <select value={selectedFisno} onChange={e => handleFisnoChange(e.target.value)}>
           <option value="">-- Fiş Seçiniz --</option>
@@ -425,6 +418,18 @@ const handlePrint = async () => {
             </option>
           ))}
         </select></h2></div></div>
+      <div>
+        {selectedFisno &&
+          (() => {
+            const selectedOrder = orders.find(o => o.fisno === selectedFisno);
+            if (!selectedOrder) return <p>Seçili fiş bulunamadı.</p>;
+
+            const cariKod = normalizeCariKod(selectedOrder.carikod || '');
+            const cariIsim = cariMap[cariKod] || 'Cari bilgi bulunamadı';
+            return (
+
+              <div>
+
                 {selectedOrder.siparis_notu && (
                   <p
                     style={{
