@@ -384,17 +384,10 @@ const handlePrint = async () => {
       <h1>Depo Sipariş Sistemi</h1>
 
       <div className="actions">
-        <button onClick={handleSync}>Yenile</button>
-        <select value={selectedFisno} onChange={e => handleFisnoChange(e.target.value)}>
-          <option value="">-- Fiş Seçiniz --</option>
-          {orders.map(order => (
-            <option key={order.fisno} value={order.fisno}>
-              {order.fisno}
-            </option>
-          ))}
-        </select>
+        <div class="divbuton"><button onClick={handleSync}>Yenile</button>
         {selectedFisno && <button onClick={handleShare}>Paylaş</button>}
-        {selectedFisno && <button onClick={handlePrint}>Yazdır</button>}
+        {selectedFisno && <button onClick={handlePrint}>Yazdır</button>}</div>
+
       </div>
 
       <p className="status">{status}</p>
@@ -423,7 +416,15 @@ const handlePrint = async () => {
     fgColor="#000000"
     level="H"
   />
-  <div>FİŞ NO:<h2>{selectedFisno}</h2></div></div>
+  <div>FİŞ NO:<h2>
+        <select value={selectedFisno} onChange={e => handleFisnoChange(e.target.value)}>
+          <option value="">-- Fiş Seçiniz --</option>
+          {orders.map(order => (
+            <option key={order.fisno} value={order.fisno}>
+              {order.fisno}
+            </option>
+          ))}
+        </select></h2></div></div>
                 {selectedOrder.siparis_notu && (
                   <p
                     style={{

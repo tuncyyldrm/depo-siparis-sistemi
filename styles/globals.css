@@ -25,6 +25,11 @@ h2 {
   align-items: center;
 }
 
+.divbuton{
+  display: flex;
+  gap: 0.5rem;
+}
+
 .actions {
   display: flex;
   align-items: center;
