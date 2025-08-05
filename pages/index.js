@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useMemo } from 'react';
 import cleanTerms from '../data/cleanTerms';
+import { QRCodeCanvas } from 'qrcode.react'; // sayfanın en üstüne ekle
 
 export default function Home() {
   const [orders, setOrders] = useState([]);
@@ -408,8 +409,19 @@ const handlePrint = async () => {
             const cariIsim = cariMap[cariKod] || 'Cari bilgi bulunamadı';
 
             return (
+              
               <div>
-                <h2>FİŞ NO: {selectedFisno}</h2>
+<div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginTop: '2px' }}>
+  <QRCodeCanvas
+    value={`${window.location.origin}?fisno=${selectedFisno}`}
+    size={124}
+    includeMargin={true}
+    bgColor="#ffffff"
+    fgColor="#000000"
+    level="H"
+  />
+</div>
+                  <h2>FİŞ NO: {selectedFisno}</h2>
                 {selectedOrder.siparis_notu && (
                   <p
                     style={{
