@@ -268,6 +268,50 @@ for (const item of selectedItems) {
       th { background: #f0f0f0; }
       tbody tr { page-break-inside: avoid; break-inside: avoid; }
       tfoot td { font-weight: bold; text-align: right; border: none; font-size: 14px; }
+      
+/* 1. sütun: geniş */
+th:nth-child(1),
+td:nth-child(1) {
+  width: 180px;
+}
+
+/* 2. sütun: dar */
+th:nth-child(2),
+td:nth-child(2) {
+  width: 150px;
+  text-align: center;
+}
+
+/* 3. sütun: normal */
+th:nth-child(3),
+td:nth-child(3) {
+  width: 50px;
+  text-align: right;
+}
+
+/* Diğer sütunlar için de aynı şekilde */
+th:nth-child(4),
+td:nth-child(4) {
+  width: 50px;
+  text-align: right;
+}
+
+th:nth-child(5),
+td:nth-child(5) {
+  width: 50px;
+}
+
+th:nth-child(6),
+td:nth-child(6) {
+  width: 90px;
+  text-align: right;
+}
+
+th:nth-child(7),
+td:nth-child(7) {
+  width: 90px;
+  text-align: right;
+}
       @media print {
         @page { margin: 1cm; }
         body { font-size: 12pt; }
@@ -278,10 +322,10 @@ for (const item of selectedItems) {
     <header>
       <div class="header-top">
         <div>Fiş No: ${selectedFisno}</div>
-        <div>Tarih: ${tarihSaat}</div>
-      <img style="position: absolute; top: 24px; right: 0;" src="${qrBase64}" alt="QR Kod" width="72" height="72" />
+        <img style="position:absolute;top:30px;right:0;"src="${qrBase64}" alt="QR Kod" width="65" height="65" />
+        <div>Tarih: ${tarihSaat} </div>     
       </div>
-      <div class="header-info">
+      <div style="width:90%" class="header-info">
         <div><strong>Cari Kod:</strong> ${rawCariKod}</div>
         <div><strong>Cari İsim:</strong> ${cariIsim}</div>
         <div><strong>Not:</strong> ${siparis_notu}</div>
@@ -322,10 +366,12 @@ for (const item of selectedItems) {
       </tbody>
       <tfoot>
         <tr>
-          <td colspan="2">Toplam Ürün Adedi:</td>
-          <td>${toplamUrunAdedi}</td>
-          <td colspan="3">Toplam Fiyat:</td>
-          <td>${toplamFiyat} ₺</td>
+          <td style="text-align:left;">DEPO:</td>
+          <td colspan="1"></td>
+          <td>Toplam:${toplamUrunAdedi}</td>
+          <td></td>
+          <td colspan="2">Toplam Fiyat:</td>
+          <td>${toplamFiyat}</td>
         </tr>
       </tfoot>
     </table>
