@@ -366,7 +366,7 @@ td:nth-child(7) {
       </tbody>
       <tfoot>
         <tr>
-          <td style="text-align:left;">DEPO:</td>
+          <td style="text-align:left;"></td>
           <td colspan="1"></td>
           <td>Toplam:${toplamUrunAdedi}</td>
           <td></td>
@@ -647,4 +647,5 @@ td:nth-child(7) {
       )}
     </main>
   );
+
 }
