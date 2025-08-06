@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useMemo } from 'react';
 import cleanTerms from '../data/cleanTerms';
 import { QRCodeCanvas } from 'qrcode.react'; // sayfanın en üstüne ekle
+import QRCode from 'qrcode';
 
 export default function Home() {
   const [orders, setOrders] = useState([]);
@@ -223,7 +224,7 @@ const handlePrint = async () => {
   const cariIsim = cariMap[cariKod] || 'Cari bilgi bulunamadı';
   const tarihSaat = new Date().toLocaleString('tr-TR');
   const siparis_notu = selectedOrder.siparis_notu || '';
-
+  
   const toplamFiyat = selectedItems.reduce((sum, item) => {
     const fiyat = parseFloat(item.sthar_bf) || 0;
     const miktar = parseFloat(item.sthar_gcmik) || 0;
@@ -234,6 +235,22 @@ const handlePrint = async () => {
     return sum + (parseFloat(item.sthar_gcmik) || 0);
   }, 0);
 
+async function generateQRCodeBase64(text) {
+  try {
+    return await QRCode.toDataURL(text, { errorCorrectionLevel: 'H' });
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+}
+  const qrBase64 = await generateQRCodeBase64(selectedFisno);
+  const stokQRMap = {};
+for (const item of selectedItems) {
+  const stokKod = item.stok_kodu || '';
+  const qr = await generateQRCodeBase64(stokKod.toUpperCase());
+  stokQRMap[stokKod] = qr;
+}
+
   const htmlContent = `
   <!DOCTYPE html>
   <html>
@@ -242,17 +259,17 @@ const handlePrint = async () => {
     <title>Sipariş Hazırlama Fişi - ${selectedFisno}</title>
     <style>
       * { box-sizing: border-box; }
-      body { font-family: Arial, sans-serif; font-size: 13px; margin: 20px; color: #000; }
+      body { font-family: Arial, sans-serif; font-size: 13px; margin: 10px; color: #000; }
       header { border-bottom: 2px solid #000; margin-bottom: 15px; padding-bottom: 10px; }
       .header-top { display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; }
       .header-info div { margin: 4px 0; }
       table { width: 100%; border-collapse: collapse; font-size: 13px; }
-      th, td { border: 1px solid #444; padding: 6px 8px; }
+      th, td { border: 1px solid #444; height:30px; padding: 2px 8px; }
       th { background: #f0f0f0; }
       tbody tr { page-break-inside: avoid; break-inside: avoid; }
       tfoot td { font-weight: bold; text-align: right; border: none; font-size: 14px; }
       @media print {
-        @page { margin: 1.5cm; }
+        @page { margin: 1cm; }
         body { font-size: 12pt; }
       }
     </style>
@@ -262,6 +279,7 @@ const handlePrint = async () => {
       <div class="header-top">
         <div>Fiş No: ${selectedFisno}</div>
         <div>Tarih: ${tarihSaat}</div>
+      <img style="position: absolute; top: 24px; right: 0;" src="${qrBase64}" alt="QR Kod" width="72" height="72" />
       </div>
       <div class="header-info">
         <div><strong>Cari Kod:</strong> ${rawCariKod}</div>
@@ -272,6 +290,7 @@ const handlePrint = async () => {
     <table>
       <thead>
         <tr>
+    <!--  <th>qr</th> -->
           <th>Stok Kodu</th>
           <th>Not</th>
           <th>Miktar</th>
@@ -286,8 +305,11 @@ const handlePrint = async () => {
           const birimFiyat = parseFloat(item.sthar_bf) || 0;
           const miktar = parseFloat(item.sthar_gcmik) || 0;
           const toplam = (birimFiyat * miktar).toFixed(2);
+          const qrImg = stokQRMap[item.stok_kodu] || '';
+
           return `
             <tr>
+         <!-- <td><img src="${qrImg}" alt="QR" width="40" height="40" /></td> -->
               <td>${item.stok_kodu}</td>
               <td></td>
               <td style="text-align:right">${miktar}</td>
