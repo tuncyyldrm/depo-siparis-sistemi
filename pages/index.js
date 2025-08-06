@@ -225,15 +225,17 @@ const handlePrint = async () => {
   const tarihSaat = new Date().toLocaleString('tr-TR');
   const siparis_notu = selectedOrder.siparis_notu || '';
   
-  const toplamFiyat = selectedItems.reduce((sum, item) => {
-    const fiyat = parseFloat(item.sthar_bf) || 0;
-    const miktar = parseFloat(item.sthar_gcmik) || 0;
-    return sum + fiyat * miktar;
-  }, 0).toFixed(2);
+const toplamFiyatRaw = selectedItems.reduce((sum, item) => {
+  const fiyat = parseFloat(item.sthar_bf) || 0;
+  const miktar = parseFloat(item.sthar_gcmik) || 0;
+  return sum + fiyat * miktar;
+}, 0);
 
-  const toplamUrunAdedi = selectedItems.reduce((sum, item) => {
-    return sum + (parseFloat(item.sthar_gcmik) || 0);
-  }, 0);
+const toplamFiyat = toplamFiyatRaw.toFixed(2);
+const toplamUrunAdedi = selectedItems.reduce((sum, item) => {
+  return sum + (parseFloat(item.sthar_gcmik) || 0);
+}, 0);
+
 
 async function generateQRCodeBase64(text) {
   try {
@@ -268,50 +270,50 @@ for (const item of selectedItems) {
       th { background: #f0f0f0; }
       tbody tr { page-break-inside: avoid; break-inside: avoid; }
       tfoot td { font-weight: bold; text-align: right; border: none; font-size: 14px; }
-      
-/* 1. sütun: geniş */
-th:nth-child(1),
-td:nth-child(1) {
-  width: 180px;
-}
+            
+      /* 1. sütun: geniş */
+      th:nth-child(1),
+      td:nth-child(1) {
+        width: 60px;
+      }
 
-/* 2. sütun: dar */
-th:nth-child(2),
-td:nth-child(2) {
-  width: 150px;
-  text-align: center;
-}
+      /* 2. sütun: dar */
+      th:nth-child(2),
+      td:nth-child(2) {
+        width: 180px;
+        text-align: center;
+      }
 
-/* 3. sütun: normal */
-th:nth-child(3),
-td:nth-child(3) {
-  width: 50px;
-  text-align: right;
-}
+      /* 3. sütun: normal */
+      th:nth-child(3),
+      td:nth-child(3) {
+        width: 50px;
+        text-align: right;
+      }
 
-/* Diğer sütunlar için de aynı şekilde */
-th:nth-child(4),
-td:nth-child(4) {
-  width: 50px;
-  text-align: right;
-}
+      /* Diğer sütunlar için de aynı şekilde */
+      th:nth-child(4),
+      td:nth-child(4) {
+        width: 50px;
+        text-align: right;
+      }
 
-th:nth-child(5),
-td:nth-child(5) {
-  width: 50px;
-}
+      th:nth-child(5),
+      td:nth-child(5) {
+        width: 50px;
+      }
 
-th:nth-child(6),
-td:nth-child(6) {
-  width: 90px;
-  text-align: right;
-}
+      th:nth-child(6),
+      td:nth-child(6) {
+        width: 90px;
+        text-align: right;
+      }
 
-th:nth-child(7),
-td:nth-child(7) {
-  width: 90px;
-  text-align: right;
-}
+      th:nth-child(7),
+      td:nth-child(7) {
+        width: 90px;
+        text-align: right;
+      }
       @media print {
         @page { margin: 1cm; }
         body { font-size: 12pt; }
@@ -326,15 +328,26 @@ td:nth-child(7) {
         <div>Tarih: ${tarihSaat} </div>     
       </div>
       <div style="width:90%" class="header-info">
-        <div><strong>Cari Kod:</strong> ${rawCariKod}</div>
-        <div><strong>Cari İsim:</strong> ${cariIsim}</div>
-        <div><strong>Not:</strong> ${siparis_notu}</div>
+      <div style="margin-bottom: 10px;">
+        <div style="margin-bottom: 4px;">
+          <strong style="display: inline-block; width: 90px;">Cari Kod:</strong>
+          <span style="font-weight: normal;">${rawCariKod}</span>
+        </div>
+        <div style="margin-bottom: 4px;">
+          <strong style="display: inline-block; width: 90px;">Cari İsim:</strong>
+          <span style="font-weight: normal;">${cariIsim}</span>
+        </div>
+        <div>
+          <strong style="display: inline-block; width: 90px;">Not:</strong>
+          <span style="font-style: italic; font-size: 12px;">${siparis_notu || "-"}</span>
+        </div>
+      </div>
       </div>
     </header>
     <table>
       <thead>
         <tr>
-    <!--  <th>qr</th> -->
+    <!--  <th>qr</th> --> 
           <th>Stok Kodu</th>
           <th>Not</th>
           <th>Miktar</th>
@@ -353,14 +366,14 @@ td:nth-child(7) {
 
           return `
             <tr>
-         <!-- <td><img src="${qrImg}" alt="QR" width="40" height="40" /></td> -->
+        <!--  <td><img src="${qrImg}" alt="QR" width="40" height="40" /></td> --> 
               <td>${item.stok_kodu}</td>
               <td></td>
               <td style="text-align:right">${miktar}</td>
               <td style="text-align:right">${item.depo_miktar ?? '-'}</td>
               <td>${item.kod_5 ?? '-'}</td>
-              <td style="text-align:right">${birimFiyat.toFixed(2)}</td>
-              <td style="text-align:right">${toplam}</td>
+              <td style="text-align:right">${birimFiyat.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
+              <td style="text-align:right">${parseFloat(toplam).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
             </tr>`;
         }).join('')}
       </tbody>
@@ -371,7 +384,7 @@ td:nth-child(7) {
           <td>Toplam:${toplamUrunAdedi}</td>
           <td></td>
           <td colspan="2">Toplam Fiyat:</td>
-          <td>${toplamFiyat}</td>
+          <td>${toplamFiyatRaw.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
         </tr>
       </tfoot>
     </table>
@@ -647,5 +660,4 @@ td:nth-child(7) {
       )}
     </main>
   );
-
 }
