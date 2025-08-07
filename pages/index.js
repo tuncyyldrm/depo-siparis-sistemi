@@ -42,35 +42,34 @@ const regex = useMemo(() => {
   }, []);
   
   // 5. index.js (Client tarafı abone olma)
-useEffect(() => {
-  if ('serviceWorker' in navigator && 'PushManager' in window) {
-    navigator.serviceWorker.register('/service-worker.js').then(async reg => {
-      const permission = await Notification.requestPermission();
-      if (permission !== 'granted') return;
+  useEffect(() => {
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      navigator.serviceWorker.register('/service-worker.js').then(async reg => {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') return;
 
-      const existing = await reg.pushManager.getSubscription();
-      if (!existing) {
-        const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-        if (!vapidKey) {
-          console.error('VAPID_PUBLIC_KEY environment variable is missing!');
-          return;
+        const existing = await reg.pushManager.getSubscription();
+        if (!existing) {
+          const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+          if (!vapidKey) {
+            console.error('VAPID_PUBLIC_KEY environment variable is missing!');
+            return;
+          }
+          const convertedKey = urlBase64ToUint8Array(vapidKey);
+          const sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: convertedKey
+          });
+
+          await fetch('/api/save-subscription', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(sub)
+          });
         }
-        const convertedKey = urlBase64ToUint8Array(vapidKey);
-        const sub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: convertedKey
-        });
-
-        await fetch('/api/save-subscription', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(sub)
-        });
-      }
-    });
-  }
-}, []);
-
+      });
+    }
+  }, []);
 
 // 6. Yardımcı fonksiyon
 function urlBase64ToUint8Array(base64String) {
@@ -225,33 +224,33 @@ const handlePrint = async () => {
   const tarihSaat = new Date().toLocaleString('tr-TR');
   const siparis_notu = selectedOrder.siparis_notu || '';
   
-const toplamFiyatRaw = selectedItems.reduce((sum, item) => {
-  const fiyat = parseFloat(item.sthar_bf) || 0;
-  const miktar = parseFloat(item.sthar_gcmik) || 0;
-  return sum + fiyat * miktar;
-}, 0);
+  const toplamFiyatRaw = selectedItems.reduce((sum, item) => {
+    const fiyat = parseFloat(item.sthar_bf) || 0;
+    const miktar = parseFloat(item.sthar_gcmik) || 0;
+    return sum + fiyat * miktar;
+  }, 0);
 
-const toplamFiyat = toplamFiyatRaw.toFixed(2);
-const toplamUrunAdedi = selectedItems.reduce((sum, item) => {
-  return sum + (parseFloat(item.sthar_gcmik) || 0);
-}, 0);
+  const toplamFiyat = toplamFiyatRaw.toFixed(2);
+  const toplamUrunAdedi = selectedItems.reduce((sum, item) => {
+    return sum + (parseFloat(item.sthar_gcmik) || 0);
+  }, 0);
 
 
-async function generateQRCodeBase64(text) {
-  try {
-    return await QRCode.toDataURL(text, { errorCorrectionLevel: 'H' });
-  } catch (err) {
-    console.error(err);
-    return null;
+  async function generateQRCodeBase64(text) {
+    try {
+      return await QRCode.toDataURL(text, { errorCorrectionLevel: 'H' });
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
   }
-}
   const qrBase64 = await generateQRCodeBase64(selectedFisno);
   const stokQRMap = {};
-for (const item of selectedItems) {
-  const stokKod = item.stok_kodu || '';
-  const qr = await generateQRCodeBase64(stokKod.toUpperCase());
-  stokQRMap[stokKod] = qr;
-}
+  for (const item of selectedItems) {
+    const stokKod = item.stok_kodu || '';
+    const qr = await generateQRCodeBase64(stokKod.toUpperCase());
+    stokQRMap[stokKod] = qr;
+  }
 
   const htmlContent = `
   <!DOCTYPE html>
@@ -271,49 +270,15 @@ for (const item of selectedItems) {
       tbody tr { page-break-inside: avoid; break-inside: avoid; }
       tfoot td { font-weight: bold; text-align: right; border: none; font-size: 14px; }
             
-      /* 1. sütun: geniş */
-      th:nth-child(1),
-      td:nth-child(1) {
-        width: 60px;
-      }
+      th:nth-child(1),td:nth-child(1) {width: 180px;}
+      th:nth-child(2),td:nth-child(2) {width: 180px;text-align: center;}
+      th:nth-child(3),td:nth-child(3) {width: 60px;text-align: right;}
+      th:nth-child(4),td:nth-child(4) {width: 60px;text-align: right;}
+      th:nth-child(5),td:nth-child(5) {width: 60px;text-align: right;}
+      th:nth-child(6),td:nth-child(6) {width: 60px;text-align: right;}
+      th:nth-child(7),td:nth-child(7) {width: 90px;text-align: right;}
+      th:nth-child(8),td:nth-child(8) {width: 90px;text-align: right;}
 
-      /* 2. sütun: dar */
-      th:nth-child(2),
-      td:nth-child(2) {
-        width: 180px;
-        text-align: center;
-      }
-
-      /* 3. sütun: normal */
-      th:nth-child(3),
-      td:nth-child(3) {
-        width: 50px;
-        text-align: right;
-      }
-
-      /* Diğer sütunlar için de aynı şekilde */
-      th:nth-child(4),
-      td:nth-child(4) {
-        width: 50px;
-        text-align: right;
-      }
-
-      th:nth-child(5),
-      td:nth-child(5) {
-        width: 50px;
-      }
-
-      th:nth-child(6),
-      td:nth-child(6) {
-        width: 90px;
-        text-align: right;
-      }
-
-      th:nth-child(7),
-      td:nth-child(7) {
-        width: 90px;
-        text-align: right;
-      }
       @media print {
         @page { margin: 1cm; }
         body { font-size: 12pt; }
