@@ -229,9 +229,18 @@ const handlePrint = async () => {
   const rawCariKod = selectedOrder.carikod || '';
   const cariKod = normalizeCariKod(rawCariKod);
   const cariIsim = cariMap[cariKod] || 'Cari bilgi bulunamadı';
-  const tarihSaat = selectedOrder.created_at
-  ? selectedOrder.created_at.toLocaleString('tr-TR')
-  : new Date().toLocaleString('tr-TR'); // fallback olarak şimdiki zamanı kullan
+
+  const tarihSaat = (() => {
+  if (!selectedOrder?.created_at) return new Date().toLocaleString('tr-TR');
+  
+  // Eğer zaten Date objesi ise direkt kullan
+  if (selectedOrder.created_at instanceof Date) return selectedOrder.created_at.toLocaleString('tr-TR');
+
+  // Eğer string ise Date objesine çevir
+  const parsedDate = new Date(selectedOrder.created_at);
+  if (isNaN(parsedDate)) return new Date().toLocaleString('tr-TR'); // geçersiz tarih fallback
+  return parsedDate.toLocaleString('tr-TR');
+})();
 
   const siparis_notu = selectedOrder.siparis_notu || '';
   
@@ -637,5 +646,6 @@ const handlePrint = async () => {
     </main>
   );
 }
+
 
 
