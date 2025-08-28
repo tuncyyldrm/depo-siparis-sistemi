@@ -226,7 +226,6 @@ const siparisTarihiRaw = selectedOrder.created_at || selectedOrder.SIPARISTARIHI
 let tarihSaat = '-';
 
 if (siparisTarihiRaw) {
-  // Eğer SIPARISTARIHI 'YYYY-MM-DD HH:mm:ss' formatında geliyorsa:
   let isoStr = siparisTarihiRaw;
 
   if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(siparisTarihiRaw)) {
@@ -236,8 +235,6 @@ if (siparisTarihiRaw) {
   const d = new Date(isoStr);
   if (!isNaN(d.getTime())) {
     tarihSaat = d.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' });
-  } else {
-    console.warn('Geçersiz tarih:', siparisTarihiRaw);
   }
 }
 
@@ -647,6 +644,7 @@ if (siparisTarihiRaw) {
   );
 
 }
+
 
 
 
