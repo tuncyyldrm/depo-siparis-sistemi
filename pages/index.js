@@ -234,14 +234,14 @@ const tarihSaat = (() => {
   const str = selectedOrder?.created_at;
   if (!str) return new Date().toLocaleString('tr-TR');
 
-  // space → T ve +00 → Z (UTC)
+  // '2025-08-26 16:01:42.89+00' → '2025-08-26T16:01:42.890Z'
   const isoStr = str.replace(' ', 'T').replace(/(\.\d+)?\+00$/, 'Z');
+
   const dateObj = new Date(isoStr);
   if (isNaN(dateObj)) return new Date().toLocaleString('tr-TR');
 
   return dateObj.toLocaleString('tr-TR');
 })();
-
 
   const siparis_notu = selectedOrder.siparis_notu || '';
   
@@ -647,6 +647,7 @@ const tarihSaat = (() => {
     </main>
   );
 }
+
 
 
 
