@@ -221,13 +221,15 @@ const handlePrint = async () => {
   const rawCariKod = selectedOrder.carikod || '';
   const cariKod = normalizeCariKod(rawCariKod);
   const cariIsim = cariMap[cariKod] || 'Cari bilgi bulunamadı';
- const siparisTarihi = selectedOrder.created_at 
-  ? new Date(selectedOrder.created_at) 
+const siparisTarihi = selectedOrder.created_at
+  ? new Date(selectedOrder.created_at)
   : null;
 
-const tarihString = siparisTarihi && !isNaN(siparisTarihi)
-  ? siparisTarihi.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' })
-  : '-';
+const tarihString =
+  siparisTarihi && !isNaN(siparisTarihi.getTime())
+    ? siparisTarihi.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' })
+    : '-';
+
   const siparis_notu = selectedOrder.siparis_notu || '';
   
   const toplamFiyatRaw = selectedItems.reduce((sum, item) => {
@@ -633,6 +635,7 @@ const tarihString = siparisTarihi && !isNaN(siparisTarihi)
   );
 
 }
+
 
 
 
