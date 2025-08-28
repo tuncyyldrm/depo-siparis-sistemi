@@ -221,24 +221,7 @@ const handlePrint = async () => {
   const rawCariKod = selectedOrder.carikod || '';
   const cariKod = normalizeCariKod(rawCariKod);
   const cariIsim = cariMap[cariKod] || 'Cari bilgi bulunamadı';
-  
-const siparisTarihiRaw = selectedOrder.created_at || selectedOrder.SIPARISTARIHI;
-let tarihSaat = '-';
-
-if (siparisTarihiRaw) {
-  let isoStr = siparisTarihiRaw;
-
-  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(siparisTarihiRaw)) {
-    isoStr = siparisTarihiRaw.replace(' ', 'T') + 'Z'; // UTC olarak kabul et
-  }
-
-  const d = new Date(isoStr);
-  if (!isNaN(d.getTime())) {
-    tarihSaat = d.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' });
-  }
-}
-
-  
+ 
   const siparis_notu = selectedOrder.siparis_notu || '';
   
   const toplamFiyatRaw = selectedItems.reduce((sum, item) => {
@@ -307,7 +290,7 @@ if (siparisTarihiRaw) {
       <div class="header-top">
         <div>Fiş No: ${selectedFisno}</div>
         <img style="position:absolute;top:30px;right:0;"src="${qrBase64}" alt="QR Kod" width="65" height="65" />
-        <div>Tarih: ${tarihSaat} </div>     
+        <div>Tarih: ${selectedOrder.created_at ? new Date(selectedOrder.created_at).toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }) : '-'}</div>   
       </div>
       <div style="width:90%" class="header-info">
       <div style="margin-bottom: 10px;">
@@ -644,6 +627,7 @@ if (siparisTarihiRaw) {
   );
 
 }
+
 
 
 
