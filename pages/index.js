@@ -223,14 +223,22 @@ const handlePrint = async () => {
   const cariKod = normalizeCariKod(rawCariKod);
   const cariIsim = cariMap[cariKod] || 'Cari bilgi bulunamadı';  
   const siparis_notu = selectedOrder.siparis_notu || '';
+  
+  function parseSiparisTarihi(tarihStr) {
+    if (!tarihStr) return null;
+    // "2025-08-26 15:17:38.907+00" → "2025-08-26T15:17:38.907Z"
+    const isoStr = tarihStr.replace(' ', 'T').replace('+00', 'Z');
+    const d = new Date(isoStr);
+    if (isNaN(d)) return null;
+    return d;
+  }
+  
   const siparisTarihi = selectedOrder?.created_at || selectedOrder?.SIPARISTARIHI;
   let tarihSaat = "-";
   
-  if (siparisTarihi) {
-    const d = new Date(siparisTarihi);
-    if (!isNaN(d)) {
-      tarihSaat = d.toLocaleString("tr-TR");
-    }
+  const d = parseSiparisTarihi(siparisTarihi);
+  if (d) {
+    tarihSaat = d.toLocaleString("tr-TR", { hour12: false });
   }
   
   const toplamFiyatRaw = selectedItems.reduce((sum, item) => {
@@ -636,6 +644,7 @@ const handlePrint = async () => {
   );
 
 }
+
 
 
 
