@@ -36,11 +36,20 @@ const regex = useMemo(() => {
     fetchSelections();
   }, []);
 
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const fisnoFromUrl = urlParams.get('fisno');
-    if (fisnoFromUrl) setSelectedFisno(fisnoFromUrl);
-  }, []);
+useEffect(() => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const fisnoFromUrl = urlParams.get('fisno');
+  if (fisnoFromUrl) {
+    setSelectedFisno(fisnoFromUrl);
+    const selectedOrder = orders.find(o => o.fisno === fisnoFromUrl);
+    if (selectedOrder) {
+      const siparisTarihi = selectedOrder?.created_at || selectedOrder?.SIPARISTARIHI;
+      const d = parseSiparisTarihi(siparisTarihi);
+      setTarihSaat(d ? d.toLocaleString("tr-TR", { hour12: false }) : '-');
+    }
+  }
+}, [orders]);
+
   
   // 5. index.js (Client tarafı abone olma)
   useEffect(() => {
@@ -224,14 +233,12 @@ const handlePrint = async () => {
   const cariIsim = cariMap[cariKod] || 'Cari bilgi bulunamadı';  
   const siparis_notu = selectedOrder.siparis_notu || '';
   
-  function parseSiparisTarihi(tarihStr) {
-    if (!tarihStr) return null;
-    // "2025-08-26 15:17:38.907+00" → "2025-08-26T15:17:38.907Z"
-    const isoStr = tarihStr.replace(' ', 'T').replace('+00', 'Z');
-    const d = new Date(isoStr);
-    if (isNaN(d)) return null;
-    return d;
-  }
+function parseSiparisTarihi(tarihStr) {
+  if (!tarihStr) return null;
+  const isoStr = tarihStr.replace(' ', 'T').replace('+00', 'Z');
+  const d = new Date(isoStr);
+  return isNaN(d) ? null : d;
+}
   
   const siparisTarihi = selectedOrder?.created_at || selectedOrder?.SIPARISTARIHI;
   let tarihSaat = "-";
@@ -436,17 +443,31 @@ const handlePrint = async () => {
     setOrigin(window.location.origin + (selectedFisno ? `?fisno=${selectedFisno}` : ''));
   }, [selectedFisno]);
 
-  const handleFisnoChange = value => {
-    setSelectedFisno(value);
+const handleFisnoChange = value => {
+  setSelectedFisno(value);
 
-    const newUrl = new URL(window.location);
-    if (value) {
-      newUrl.searchParams.set('fisno', value);
+  const newUrl = new URL(window.location);
+  if (value) {
+    newUrl.searchParams.set('fisno', value);
+  } else {
+    newUrl.searchParams.delete('fisno');
+  }
+  window.history.pushState({}, '', newUrl);
+
+  // Tarihi güncelle
+  if (value) {
+    const selectedOrder = orders.find(o => o.fisno === value);
+    if (selectedOrder) {
+      const siparisTarihi = selectedOrder?.created_at || selectedOrder?.SIPARISTARIHI;
+      const d = parseSiparisTarihi(siparisTarihi);
+      setTarihSaat(d ? d.toLocaleString("tr-TR", { hour12: false }) : '-');
     } else {
-      newUrl.searchParams.delete('fisno');
+      setTarihSaat('-');
     }
-    window.history.pushState({}, '', newUrl);
-  };
+  } else {
+    setTarihSaat('-');
+  }
+};
 
   return (
     <main className="container">
@@ -644,6 +665,7 @@ const handlePrint = async () => {
   );
 
 }
+
 
 
 
