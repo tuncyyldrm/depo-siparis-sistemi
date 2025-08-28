@@ -584,6 +584,8 @@ const tarihString =
             );
           })()}
       </div>
+console.log('Selected Order:', selectedOrder);
+console.log('created_at:', selectedOrder.created_at);
 
       {/* Cari popup */}
       {cariPopup.visible && (
@@ -635,6 +637,7 @@ const tarihString =
   );
 
 }
+
 
 
 
