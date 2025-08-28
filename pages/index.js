@@ -12,7 +12,8 @@ export default function Home() {
   const [imgPopup, setImgPopup] = useState({ visible: false, src: '', alt: '' });
   const [cariPopup, setCariPopup] = useState({ visible: false, url: '' });
   const [cariMap, setCariMap] = useState({}); // cari kod → cari isim haritası
-
+  const [tarihSaat, setTarihSaat] = useState('-'); // 👈 tarih state
+  
 const regex = useMemo(() => {
   const escapedTerms = cleanTerms
     .filter(Boolean) // boş terimleri filtrele
@@ -635,5 +636,6 @@ const handlePrint = async () => {
   );
 
 }
+
 
 
