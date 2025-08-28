@@ -222,18 +222,25 @@ const handlePrint = async () => {
   const cariKod = normalizeCariKod(rawCariKod);
   const cariIsim = cariMap[cariKod] || 'Cari bilgi bulunamadı';
   
-const siparisTarihi = selectedOrder.created_at || selectedOrder.SIPARISTARIHI;
+const siparisTarihiRaw = selectedOrder.created_at || selectedOrder.SIPARISTARIHI;
 let tarihSaat = '-';
 
-if (siparisTarihi) {
-  // ISO string’e dönüştür
-  const d = new Date(siparisTarihi.replace(' ', 'T').replace('+00', 'Z'));
+if (siparisTarihiRaw) {
+  // Eğer SIPARISTARIHI 'YYYY-MM-DD HH:mm:ss' formatında geliyorsa:
+  let isoStr = siparisTarihiRaw;
+
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(siparisTarihiRaw)) {
+    isoStr = siparisTarihiRaw.replace(' ', 'T') + 'Z'; // UTC olarak kabul et
+  }
+
+  const d = new Date(isoStr);
   if (!isNaN(d.getTime())) {
     tarihSaat = d.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' });
   } else {
-    console.warn('Geçersiz tarih:', siparisTarihi);
+    console.warn('Geçersiz tarih:', siparisTarihiRaw);
   }
 }
+
   
   const siparis_notu = selectedOrder.siparis_notu || '';
   
@@ -640,6 +647,7 @@ if (siparisTarihi) {
   );
 
 }
+
 
 
 
