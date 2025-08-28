@@ -299,7 +299,7 @@ const handlePrint = async () => {
       <div class="header-top">
         <div>Fiş No: ${selectedFisno}</div>
         <img style="position:absolute;top:30px;right:0;"src="${qrBase64}" alt="QR Kod" width="65" height="65" />
-        <div>Tarih: ${tarihSaat} </div>     
+        <div>Sipariş Tarihi: ${tarihSaat} </div>     
       </div>
       <div style="width:90%" class="header-info">
       <div style="margin-bottom: 10px;">
@@ -636,3 +636,4 @@ const handlePrint = async () => {
   );
 
 }
+
