@@ -95,9 +95,9 @@ export default async function handler(req, res) {
         carikod: order.STHAR_CARIKOD || null,
         siparis_notu: order.SIPARIS_NOTU || null,
         created_at: order.SIPARISTARIHI
-  ? new Date(order.SIPARISTARIHI.replace(' ', 'T').replace('+00', 'Z')).toISOString()
-  : null
-,
+ 		 ? order.SIPARISTARIHI.replace(' ', 'T') + 'Z'
+ 	 	: null
+		  	,
       }))
       .filter((o) => o.fisno);
 
@@ -248,6 +248,7 @@ export default async function handler(req, res) {
     if (pool) await pool.close();
   }
 }
+
 
 
 
