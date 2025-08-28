@@ -94,7 +94,10 @@ export default async function handler(req, res) {
         fisno: temizleFisno(order.FISNO),
         carikod: order.STHAR_CARIKOD || null,
         siparis_notu: order.SIPARIS_NOTU || null,
-        created_at: new Date(order.SIPARISTARIHI).toISOString(),
+        created_at: order.SIPARISTARIHI
+  ? new Date(order.SIPARISTARIHI.replace(' ', 'T').replace('+00', 'Z')).toISOString()
+  : null
+,
       }))
       .filter((o) => o.fisno);
 
@@ -245,5 +248,6 @@ export default async function handler(req, res) {
     if (pool) await pool.close();
   }
 }
+
 
 
