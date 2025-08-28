@@ -290,7 +290,12 @@ const handlePrint = async () => {
       <div class="header-top">
         <div>Fiş No: ${selectedFisno}</div>
         <img style="position:absolute;top:30px;right:0;"src="${qrBase64}" alt="QR Kod" width="65" height="65" />
-        <div>Tarih: ${selectedOrder.created_at ? new Date(selectedOrder.created_at).toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }) : '-'}</div>   
+        <div>
+  Tarih: {selectedOrder.created_at && !isNaN(new Date(selectedOrder.created_at))
+    ? new Date(selectedOrder.created_at).toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' })
+    : '-'}
+</div>
+   
       </div>
       <div style="width:90%" class="header-info">
       <div style="margin-bottom: 10px;">
@@ -627,6 +632,7 @@ const handlePrint = async () => {
   );
 
 }
+
 
 
 
