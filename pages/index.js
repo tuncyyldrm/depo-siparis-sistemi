@@ -1,672 +1,247 @@
-import { useEffect, useState } from 'react';
-import { useMemo } from 'react';
-import cleanTerms from '../data/cleanTerms';
-import { QRCodeCanvas } from 'qrcode.react'; // sayfanın en üstüne ekle
-import QRCode from 'qrcode';
+import sql from "mssql";
+import { createClient } from "@supabase/supabase-js";
+import webpush from "web-push";
 
-export default function Home() {
-  const [orders, setOrders] = useState([]);
-  const [selections, setSelections] = useState({});
-  const [selectedFisno, setSelectedFisno] = useState('');
-  const [status, setStatus] = useState('');
-  const [imgPopup, setImgPopup] = useState({ visible: false, src: '', alt: '' });
-  const [cariPopup, setCariPopup] = useState({ visible: false, url: '' });
-  const [cariMap, setCariMap] = useState({}); // cari kod → cari isim haritası
-  const [tarihSaat, setTarihSaat] = useState('-'); // 👈 tarih state
-  
-const regex = useMemo(() => {
-  const escapedTerms = cleanTerms
-    .filter(Boolean) // boş terimleri filtrele
-    .map(term => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-  const pattern = `(${escapedTerms.join('|')})`;
-  return new RegExp(pattern, 'gi'); // \b kaldırıldı çünkü bazı terimler / veya - içerebilir
-}, [cleanTerms]);
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
-  function temizleStokKodu(stok) {
-    return stok.replace(regex, '').trim();
-  }
+const sqlConfig = {
+  user: "ygt",
+  password: "Yildirim32",
+  server: "88.247.52.50",
+  port: 15443,
+  database: "YIGIT2025",
+  options: {
+    encrypt: false,
+    trustServerCertificate: true,
+  },
+};
 
-  function normalizeCariKod(kod) {
-    if (!kod) return '';
-    return kod.replace(/\s+/g, '').toUpperCase();
-  }
-
-  useEffect(() => {
-    fetchOrders();
-    fetchSelections();
-  }, []);
-
-useEffect(() => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const fisnoFromUrl = urlParams.get('fisno');
-  if (fisnoFromUrl) {
-    setSelectedFisno(fisnoFromUrl);
-    const selectedOrder = orders.find(o => o.fisno === fisnoFromUrl);
-    if (selectedOrder) {
-      const siparisTarihi = selectedOrder?.created_at || selectedOrder?.SIPARISTARIHI;
-      const d = parseSiparisTarihi(siparisTarihi);
-      setTarihSaat(d ? d.toLocaleString("tr-TR", { hour12: false }) : '-');
-    }
-  }
-}, [orders]);
-
-  
-  // 5. index.js (Client tarafı abone olma)
-  useEffect(() => {
-    if ('serviceWorker' in navigator && 'PushManager' in window) {
-      navigator.serviceWorker.register('/service-worker.js').then(async reg => {
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') return;
-
-        const existing = await reg.pushManager.getSubscription();
-        if (!existing) {
-          const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-          if (!vapidKey) {
-            console.error('VAPID_PUBLIC_KEY environment variable is missing!');
-            return;
-          }
-          const convertedKey = urlBase64ToUint8Array(vapidKey);
-          const sub = await reg.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: convertedKey
-          });
-
-          await fetch('/api/save-subscription', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(sub)
-          });
-        }
-      });
-    }
-  }, []);
-
-// 6. Yardımcı fonksiyon
-function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding)
-    .replace(/-/g, '+')
-    .replace(/_/g, '/');
-  const rawData = atob(base64);
-  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+function temizleFisno(fisno) {
+  return fisno
+    ? fisno.toString().trim().replace(/\s+/g, "").replace(/[^\w\-]/g, "")
+    : "";
 }
-  // Google Sheets'ten cari verisi çek
-  useEffect(() => {
-    async function fetchCariData() {
-      try {
-        const sheetId = '1yzee6VpQWzoznwce2T7eFmPMniULr1Hy6LDQuaOozps';
-        const apiKey = 'AIzaSyCQ_SmNuv0JxBBtaiSi7LGxPmeqOPygjYc';
-        const sheetName = 'NETSİS';
-        const range = 'A3:I';
 
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(sheetName + '!' + range)}?key=${apiKey}`;
+// VAPID ayarları (env'den)
+webpush.setVapidDetails(
+  "mailto:youremail@example.com", // mail adresini kendine göre değiştir
+  process.env.VAPID_PUBLIC_KEY,
+  process.env.VAPID_PRIVATE_KEY
+);
 
-        const res = await fetch(url);
-        if (!res.ok) throw new Error('Cari verisi alınamadı');
-
-        const data = await res.json();
-        const rows = data.values;
-
-        if (!rows || rows.length < 2) {
-          console.error('Yeterli veri yok veya başlık satırı eksik.');
-          return;
-        }
-
-        const headers = rows[0];
-        // Cari kod ve cari ad başlıklarını bul
-        const cariKodHeader = headers.find(h => /cari.?kod/i.test(h)) || headers[0];
-        const cariAdHeader = headers.find(h => /cari.?ad/i.test(h)) || headers[1];
-
-        const parsedData = rows.slice(1).map(row => {
-          const obj = {};
-          headers.forEach((h, i) => {
-            obj[h] = row[i] || '';
-          });
-          return obj;
-        });
-
-        const map = {};
-        parsedData.forEach(item => {
-          const kod = normalizeCariKod(item[cariKodHeader]);
-          if (kod) {
-            map[kod] = item[cariAdHeader] || '';
-          }
-        });
-
-        setCariMap(map);
-      } catch (error) {
-        console.error('Cari veri çekme hatası:', error);
-      }
-    }
-
-    fetchCariData();
-  }, []);
-
-  const fetchOrders = async () => {
-    try {
-      setStatus('Siparişler yükleniyor...');
-      const res = await fetch('/api/orders');
-      if (!res.ok) throw new Error('Sipariş verisi alınamadı');
-      const data = await res.json();
-      setOrders(data);
-      setStatus('');
-    } catch (err) {
-      console.error(err);
-      setStatus('Sipariş yükleme hatası: ' + err.message);
-    }
-  };
-
-  const fetchSelections = async () => {
-    try {
-      const res = await fetch('/api/selections');
-      if (!res.ok) throw new Error('Seçimler verisi alınamadı');
-      const data = await res.json();
-      const obj = {};
-      data.forEach(sel => {
-        if (!obj[sel.fisno]) obj[sel.fisno] = {};
-        obj[sel.fisno][sel.item_index] = sel.selected;
-      });
-      setSelections(obj);
-    } catch (err) {
-      console.error(err);
-      setStatus('Seçim yükleme hatası: ' + err.message);
-    }
-  };
-
-  const toggleSelection = async (fisno, index, checked) => {
-    setSelections(prev => {
-      const newSel = { ...prev };
-      if (!newSel[fisno]) newSel[fisno] = {};
-      newSel[fisno][index] = checked;
-      return newSel;
-    });
-
-    try {
-      const response = await fetch('/api/selections', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fisno, item_index: index, selected: checked }),
-      });
-      if (!response.ok) {
-        const text = await response.text();
-        alert('Sunucu hatası: ' + text);
-      }
-    } catch (e) {
-      alert('İşlem sırasında hata: ' + e.message);
-    }
-  };
-
-  const handleSync = async () => {
-    try {
-      setStatus("SQL'den Supabase'e senkronizasyon yapılıyor...");
-      const response = await fetch('/api/sync-sql', { method: 'POST' });
-      if (!response.ok) {
-        const text = await response.text();
-        alert('Sunucu hatası: ' + text);
-        return;
-      }
-      const data = await response.json();
-      alert(data.message);
-      await fetchOrders();
-    } catch (e) {
-      alert('İşlem sırasında hata: ' + e.message);
-    } finally {
-      setStatus('');
-    }
-  };
-  
-const handlePrint = async () => {
-  if (!selectedFisno) {
-    alert('Lütfen önce bir fiş seçin!');
-    return;
-  }
-
-  const selectedOrder = orders.find(o => o.fisno === selectedFisno);
-  if (!selectedOrder || !selectedOrder.order_items) {
-    alert('Seçili fişin ürün bilgisi bulunamadı!');
-    return;
-  }
-
-  const selectedItems = selectedOrder.order_items;
-  const rawCariKod = selectedOrder.carikod || '';
-  const cariKod = normalizeCariKod(rawCariKod);
-  const cariIsim = cariMap[cariKod] || 'Cari bilgi bulunamadı';  
-  const siparis_notu = selectedOrder.siparis_notu || '';
-  
-function parseSiparisTarihi(tarihStr) {
-  if (!tarihStr) return null;
-  const isoStr = tarihStr.replace(' ', 'T').replace('+00', 'Z');
-  const d = new Date(isoStr);
-  return isNaN(d) ? null : d;
-}
-  
-  const siparisTarihi = selectedOrder?.created_at || selectedOrder?.SIPARISTARIHI;
-  let tarihSaat = "-";
-  
-  const d = parseSiparisTarihi(siparisTarihi);
-  if (d) {
-    tarihSaat = d.toLocaleString("tr-TR", { hour12: false });
-  }
-  
-  const toplamFiyatRaw = selectedItems.reduce((sum, item) => {
-    const fiyat = parseFloat(item.sthar_bf) || 0;
-    const miktar = parseFloat(item.sthar_gcmik) || 0;
-    return sum + fiyat * miktar;
-  }, 0);
-
-  const toplamFiyat = toplamFiyatRaw.toFixed(2);
-  const toplamUrunAdedi = selectedItems.reduce((sum, item) => {
-    return sum + (parseFloat(item.sthar_gcmik) || 0);
-  }, 0);
-
-
-  async function generateQRCodeBase64(text) {
-    try {
-      return await QRCode.toDataURL(text, { errorCorrectionLevel: 'H' });
-    } catch (err) {
-      console.error(err);
-      return null;
-    }
-  }
-  const qrBase64 = await generateQRCodeBase64(selectedFisno);
-  const stokQRMap = {};
-  for (const item of selectedItems) {
-    const stokKod = item.stok_kodu || '';
-    const qr = await generateQRCodeBase64(stokKod.toUpperCase());
-    stokQRMap[stokKod] = qr;
-  }
-
-  const htmlContent = `
-  <!DOCTYPE html>
-  <html>
-  <head>
-    <meta charset="UTF-8">
-    <title>Sipariş Hazırlama Fişi - ${selectedFisno}</title>
-    <style>
-      * { box-sizing: border-box; }
-      body { font-family: Arial, sans-serif; font-size: 13px; margin: 10px; color: #000; }
-      header { border-bottom: 2px solid #000; margin-bottom: 15px; padding-bottom: 10px; }
-      .header-top { display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; }
-      .header-info div { margin: 4px 0; }
-      table { width: 100%; border-collapse: collapse; font-size: 13px; }
-      th, td { border: 1px solid #444; height:30px; padding: 2px 8px; }
-      th { background: #f0f0f0; }
-      tbody tr { page-break-inside: avoid; break-inside: avoid; }
-      tfoot td { font-weight: bold; text-align: right; border: none; font-size: 14px; }
-            
-      th:nth-child(1),td:nth-child(1) {width: 180px;}
-      th:nth-child(2),td:nth-child(2) {width: 180px;text-align: center;}
-      th:nth-child(3),td:nth-child(3) {width: 60px;text-align: right;}
-      th:nth-child(4),td:nth-child(4) {width: 60px;text-align: right;}
-      th:nth-child(5),td:nth-child(5) {width: 60px;text-align: right;}
-      th:nth-child(6),td:nth-child(6) {width: 60px;text-align: right;}
-      th:nth-child(7),td:nth-child(7) {width: 90px;text-align: right;}
-      th:nth-child(8),td:nth-child(8) {width: 90px;text-align: right;}
-
-      @media print {
-        @page { margin: 1cm; }
-        body { font-size: 12pt; }
-      }
-    </style>
-  </head>
-  <body>
-    <header>
-      <div class="header-top">
-        <div>Fiş No: ${selectedFisno}</div>
-        <img style="position:absolute;top:30px;right:0;"src="${qrBase64}" alt="QR Kod" width="65" height="65" />
-        <div>Sipariş Tarihi: ${tarihSaat} </div>     
-      </div>
-      <div style="width:90%" class="header-info">
-      <div style="margin-bottom: 10px;">
-        <div style="margin-bottom: 4px;">
-          <strong style="display: inline-block; width: 90px;">Cari Kod:</strong>
-          <span style="font-weight: normal;">${rawCariKod}</span>
-        </div>
-        <div style="margin-bottom: 4px;">
-          <strong style="display: inline-block; width: 90px;">Cari İsim:</strong>
-          <span style="font-weight: normal;">${cariIsim}</span>
-        </div>
-        <div>
-          <strong style="display: inline-block; width: 90px;">Not:</strong>
-          <span style="font-style: italic; font-size: 12px;">${siparis_notu || "-"}</span>
-        </div>
-      </div>
-      </div>
-    </header>
-    <table>
-      <thead>
-        <tr>
-    <!--  <th>qr</th> --> 
-          <th>Stok Kodu</th>
-          <th>Not</th>
-          <th>Miktar</th>
-          <th>Depo Miktar</th>
-          <th>Raf</th>
-          <th>Birim Fiyat</th>
-          <th>Toplam</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${selectedItems.map(item => {
-          const birimFiyat = parseFloat(item.sthar_bf) || 0;
-          const miktar = parseFloat(item.sthar_gcmik) || 0;
-          const toplam = (birimFiyat * miktar).toFixed(2);
-          const qrImg = stokQRMap[item.stok_kodu] || '';
-
-          return `
-            <tr>
-        <!--  <td><img src="${qrImg}" alt="QR" width="40" height="40" /></td> --> 
-              <td>${item.stok_kodu}</td>
-              <td></td>
-              <td style="text-align:right">${miktar}</td>
-              <td style="text-align:right">${item.depo_miktar ?? '-'}</td>
-              <td>${item.kod_5 ?? '-'}</td>
-              <td style="text-align:right">${birimFiyat.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
-              <td style="text-align:right">${parseFloat(toplam).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
-            </tr>`;
-        }).join('')}
-      </tbody>
-      <tfoot>
-        <tr>
-          <td style="text-align:left;"></td>
-          <td colspan="1"></td>
-          <td>Toplam:${toplamUrunAdedi}</td>
-          <td></td>
-          <td colspan="2">Toplam Fiyat:</td>
-          <td>${toplamFiyatRaw.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
-        </tr>
-      </tfoot>
-    </table>
-  </body>
-  </html>`;
-
-  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
+async function sendPushNotification(subscription, payload) {
   try {
-    if (isMobile) {
-      // Mobilde yeni sekmede PDF önizlemesi
-      const blob = new Blob([htmlContent], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const newTab = window.open(url, '_blank');
-      if (!newTab) {
-        alert("Yeni sekme açılamadı. Lütfen pop-up engelleyiciyi devre dışı bırakın.");
-        return;
-      }
-
-    } else {
-      // Masaüstü: doğrudan yazdır
-      const printWindow = window.open('', '', 'width=900,height=700');
-      if (!printWindow) {
-        alert("Yazdırma penceresi açılamadı. Pop-up engelleyiciyi kontrol edin.");
-        return;
-      }
-      printWindow.document.write(htmlContent);
-      printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-      }, 800);
-    }
-  } catch (e) {
-    alert("Yazdırma desteklenmiyor. Alternatif olarak ekran görüntüsü alabilirsiniz.");
-    console.error(e);
+    await webpush.sendNotification(subscription, JSON.stringify(payload));
+  } catch (error) {
+    throw error; // Dışarı at, böylece hata handler tarafından yakalanır
   }
-};
-
-  const handleShare = () => {
-    const shareUrl = window.location.href;
-
-    if (navigator.share) {
-      navigator
-        .share({
-          title: `Fiş No: ${selectedFisno}`,
-          text: `Depo hazırlık için fiş: ${selectedFisno}`,
-          url: shareUrl,
-        })
-        .catch(error => {
-          console.error('Paylaşım hatası:', error);
-          alert('Paylaşım iptal edildi veya desteklenmiyor.');
-        });
-    } else {
-      // Web Share API yoksa kopyala
-      navigator.clipboard
-        .writeText(shareUrl)
-        .then(() => alert('Link kopyalandı!'))
-        .catch(err => alert('Link kopyalanamadı: ' + err));
-    }
-  };
-
-  const [origin, setOrigin] = useState('');
-
-  useEffect(() => {
-    setOrigin(window.location.origin + (selectedFisno ? `?fisno=${selectedFisno}` : ''));
-  }, [selectedFisno]);
-
-const handleFisnoChange = value => {
-  setSelectedFisno(value);
-
-  const newUrl = new URL(window.location);
-  if (value) {
-    newUrl.searchParams.set('fisno', value);
-  } else {
-    newUrl.searchParams.delete('fisno');
-  }
-  window.history.pushState({}, '', newUrl);
-
-  // Tarihi güncelle
-  if (value) {
-    const selectedOrder = orders.find(o => o.fisno === value);
-    if (selectedOrder) {
-      const siparisTarihi = selectedOrder?.created_at || selectedOrder?.SIPARISTARIHI;
-      const d = parseSiparisTarihi(siparisTarihi);
-      setTarihSaat(d ? d.toLocaleString("tr-TR", { hour12: false }) : '-');
-    } else {
-      setTarihSaat('-');
-    }
-  } else {
-    setTarihSaat('-');
-  }
-};
-
-  return (
-    <main className="container">
-      <h1>Depo Sipariş Sistemi</h1>
-
-<div className="actions">
-  <div className="divbuton">
-    <button onClick={handleSync}>Yenile</button>
-    {selectedFisno && <button onClick={handleShare}>Paylaş</button>}
-    {selectedFisno && <button onClick={handlePrint}>Yazdır</button>}
-  </div>
-</div>
-
-      <p className="status">{status}</p>
-
-<div className="fisbaslik">
-  <QRCodeCanvas
-    value={origin}
-    size={75}
-    includeMargin={true}
-    bgColor="#ffffff"
-    fgColor="#000000"
-    level="H"
-  />
-
-  <div>FİŞ NO:<h2>
-        <select value={selectedFisno} onChange={e => handleFisnoChange(e.target.value)}>
-          <option value="">-- Fiş Seçiniz --</option>
-          {orders.map(order => (
-            <option key={order.fisno} value={order.fisno}>
-              {order.fisno}
-            </option>
-          ))}
-        </select></h2>${tarihSaat}</div></div>
-      <div>
-        {selectedFisno &&
-          (() => {
-            const selectedOrder = orders.find(o => o.fisno === selectedFisno);
-            if (!selectedOrder) return <p>Seçili fiş bulunamadı.</p>;
-
-            const cariKod = normalizeCariKod(selectedOrder.carikod || '');
-            const cariIsim = cariMap[cariKod] || 'Cari bilgi bulunamadı';
-            return (
-
-              <div>
-
-                {selectedOrder.siparis_notu && (
-                  <p
-                    style={{
-                      whiteSpace: 'pre-wrap',
-                      marginTop: '8px',
-                      fontStyle: 'italic',
-                      color: '#444',
-                    }}
-                  >
-                    <strong>Sipariş Notu: </strong>
-                    {selectedOrder.siparis_notu}
-                  </p>
-                )}
-
-                <div className="cari-box">
-                  <strong>Cari Kod:</strong>{' '}
-                  <span
-                    className="cari-link"
-                    onClick={() =>
-                      setCariPopup({
-                        visible: true,
-                        url: `https://katalog.yigitotomotiv.com/etiket/cari?arama=${encodeURIComponent(
-                          selectedOrder?.order_items?.[0]?.sthar_carikod ?? ''
-                        )}`,
-                      })
-                    }
-                  >
-                    {selectedOrder?.order_items?.[0]?.sthar_carikod ?? '—'}
-                  </span>
-                  <br />
-                  <small>
-                    <strong>Cari İsim:</strong> {cariIsim}
-                  </small>
-                </div>
-
-                {selectedOrder.order_items?.map((item, i) => {
-                  const temizKod = temizleStokKodu(item.stok_kodu);
-                  const imageUrl = `https://katalog.yigitotomotiv.com/resim/${encodeURIComponent(
-                    temizKod
-                  )}.jpg`;
-
-                  const stokKodu = item.stok_kodu.toUpperCase();
-                  let markaClass = '';
-                  if (stokKodu.includes('OEM')) markaClass = 'marka-oem';
-                  else if (stokKodu.includes('RNR')) markaClass = 'marka-rnr';
-                  else if (stokKodu.includes('PNH')) markaClass = 'marka-pnh';
-
-                  return (
-                    <div
-                      key={i}
-                      className={`item-card ${
-                        selections[selectedFisno]?.[i] ? 'selected' : ''
-                      } ${markaClass}`}
-                    >
-                      <img
-                        src={imageUrl}
-                        alt={item.stok_kodu}
-                        onClick={() =>
-                          setImgPopup({ visible: true, src: imageUrl, alt: item.stok_kodu })
-                        }
-                        onError={e => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src = '/placeholder-image.png';
-                        }}
-                      />
-                      <div className="info">
-                        <div className="stok-info">{item.stok_kodu}</div>
-                        <div className="stok-details p-2 border rounded-md bg-gray-50">
-                          <div className="flex flex-wrap gap-x-4 gap-y-1 mb-2 text-sm text-gray-800">
-                            <div>
-                              <strong>Miktar:</strong> {item.sthar_gcmik}
-                            </div>
-                            <div>
-                              <strong>Depo:</strong> {item.depo_miktar ?? '-'}
-                            </div>
-                          </div>
-                          <label className="flex flex-wrap gap-x-4 gap-y-1 mb-2 text-sm text-gray-800">
-                            <div>
-                              <strong>Raf:</strong> {item.kod_5 ?? '-'}
-                            </div>
-                            <input
-                              type="checkbox"
-                              checked={!!selections[selectedFisno]?.[i]}
-                              onChange={e => toggleSelection(selectedFisno, i, e.target.checked)}
-                              className="h-4 w-4"
-                            />
-                            <span>Seçim</span>
-                          </label>
-                        </div>
-                        {item.depo_miktar !== undefined && item.depo_miktar < 5 && (
-                          <span className="status-badge">Stok Az</span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })()}
-      </div>
-
-      {/* Cari popup */}
-      {cariPopup.visible && (
-        <div
-          className="popup-overlay"
-          onClick={() => setCariPopup({ visible: false, url: '' })}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Cari Bilgi Popup"
-        >
-          <div className="popup-content" onClick={e => e.stopPropagation()}>
-            <button
-              className="popup-close"
-              onClick={() => setCariPopup({ visible: false, url: '' })}
-              aria-label="Popup kapat"
-            >
-              ✖
-            </button>
-            <iframe src={cariPopup.url} title="Cari Bilgi" />
-          </div>
-        </div>
-      )}
-
-      {/* Resim büyütme popup */}
-      {imgPopup.visible && (
-        <div
-          className="popup-overlay"
-          onClick={() => setImgPopup({ visible: false, src: '', alt: '' })}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Büyük resim görüntüleme"
-        >
-          <img
-            src={imgPopup.src}
-            alt={imgPopup.alt}
-            className="popup-image"
-            onClick={e => e.stopPropagation()}
-          />
-          <button
-            className="popup-close"
-            onClick={() => setImgPopup({ visible: false, src: '', alt: '' })}
-            aria-label="Resim popup kapat"
-          >
-            ✖
-          </button>
-        </div>
-      )}
-    </main>
-  );
-
 }
 
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ message: "Method not allowed" });
+  }
 
+  let pool;
+  try {
+    pool = await sql.connect(sqlConfig);
 
+    const result = await pool.request().query(`
+      ;WITH SonFisler AS (
+        SELECT DISTINCT TOP 10 FISNO
+        FROM TBLSIPATRA
+        ORDER BY FISNO DESC
+      ),
+      DepoMiktar AS (
+        SELECT 
+          STOK_KODU,
+          SUM(ISNULL(TOP_GIRIS_MIK, 0)) - SUM(ISNULL(TOP_CIKIS_MIK, 0)) AS DEPO_MIKTAR
+        FROM TBLSTOKPH
+        GROUP BY STOK_KODU
+      )
+      SELECT 
+        p.STOK_KODU,
+        p.FISNO,
+        CAST(p.STHAR_GCMIK AS DECIMAL(18,0)) AS STHAR_GCMIK,
+        CAST(p.STHAR_BF AS DECIMAL(18,0)) AS STHAR_BF,
+        p.STHAR_SATISK,
+        p.STHAR_CARIKOD,
+        s.KOD_5,
+        CAST(ISNULL(d.DEPO_MIKTAR, 0) AS DECIMAL(18,0)) AS DEPO_MIKTAR,
+        dbo.trk(f.ACIK1) AS SIPARIS_NOTU, FIYATTARIHI AS SIPARISTARIHI
+      FROM TBLSIPATRA p
+      INNER JOIN SonFisler sf ON p.FISNO = sf.FISNO
+      LEFT JOIN TBLSTSABIT s ON p.STOK_KODU = s.STOK_KODU
+      LEFT JOIN DepoMiktar d ON p.STOK_KODU = d.STOK_KODU
+      LEFT JOIN TBLFATUEK f ON p.FISNO = f.FATIRSNO
+      ORDER BY p.FISNO DESC, p.STOK_KODU;
+    `);
 
+    const rows = result.recordset;
 
+    if (!rows || rows.length === 0) {
+      return res.status(200).json({ message: "Yeni sipariş yok." });
+    }
+
+    // Benzersiz siparişler (orders tablosu için)
+    const uniqueOrders = Array.from(
+      new Map(rows.map((row) => [temizleFisno(row.FISNO), row])).values()
+    )
+      .map((order) => ({
+        fisno: temizleFisno(order.FISNO),
+        carikod: order.STHAR_CARIKOD || null,
+        siparis_notu: order.SIPARIS_NOTU || null,
+        created_at: order.SIPARISTARIHI.toISOString(),
+      }))
+      .filter((o) => o.fisno);
+
+    // Sipariş kalemleri (order_items tablosu için)
+    const orderItems = rows
+      .map((row) => ({
+        fisno: temizleFisno(row.FISNO),
+        stok_kodu: row.STOK_KODU,
+        sthar_gcmik: row.STHAR_GCMIK,
+        sthar_bf: row.STHAR_BF,
+        sthar_satisk: row.STHAR_SATISK,
+        sthar_carikod: row.STHAR_CARIKOD,
+        kod_5: row.KOD_5,
+        depo_miktar: row.DEPO_MIKTAR,
+      }))
+      .filter((item) => item.fisno);
+
+    // Supabase'e orders upsert
+    const { error: orderError } = await supabase
+      .from("orders")
+      .upsert(uniqueOrders, { onConflict: ["fisno"] });
+    if (orderError) {
+      console.error("Orders upsert hatası:", orderError);
+      return res.status(500).json({ message: "Supabase orders hatası: " + orderError.message });
+    }
+
+    // Supabase'e order_items upsert
+    const { error: itemsError } = await supabase
+      .from("order_items")
+      .upsert(orderItems, { onConflict: ["fisno", "stok_kodu"] });
+    if (itemsError) {
+      console.error("Order_items upsert hatası:", itemsError);
+      return res.status(500).json({ message: "Supabase order_items hatası: " + itemsError.message });
+    }
+
+    // Son 10 sipariş numarasını al
+    const latestFisnos = uniqueOrders.map((o) => o.fisno).filter(Boolean);
+
+    // Silme işlemleri (eski siparişler temizleniyor)
+    if (latestFisnos.length > 0) {
+      const latestFisnoSet = new Set(latestFisnos);
+
+      const { data: allOrders, error: fetchError } = await supabase
+        .from("orders")
+        .select("fisno");
+
+      if (fetchError) {
+        console.error("Orders listeleme hatası:", fetchError);
+        return res.status(500).json({ message: "Orders listeleme hatası: " + fetchError.message });
+      }
+
+      const fisnosToDelete = allOrders
+        .map((o) => o.fisno)
+        .filter((fis) => !latestFisnoSet.has(fis));
+
+      if (fisnosToDelete.length > 0) {
+        const { error: deleteOrdersError } = await supabase
+          .from("orders")
+          .delete()
+          .in("fisno", fisnosToDelete);
+        if (deleteOrdersError) {
+          console.error("Orders silme hatası:", deleteOrdersError);
+          return res.status(500).json({ message: "Orders silme hatası: " + deleteOrdersError.message });
+        }
+
+        const { error: deleteItemsError } = await supabase
+          .from("order_items")
+          .delete()
+          .in("fisno", fisnosToDelete);
+        if (deleteItemsError) {
+          console.error("Order_items silme hatası:", deleteItemsError);
+          return res.status(500).json({ message: "Order_items silme hatası: " + deleteItemsError.message });
+        }
+
+        const { error: deleteSelectionsError } = await supabase
+          .from("order_item_selections")
+          .delete()
+          .in("fisno", fisnosToDelete);
+        if (deleteSelectionsError) {
+          console.error("Order_item_selections silme hatası:", deleteSelectionsError);
+          return res.status(500).json({ message: "Order_item_selections silme hatası: " + deleteSelectionsError.message });
+        }
+      }
+    } else {
+      console.warn("latestFisnos dizisi boş, silme işlemi atlandı.");
+    }
+
+    // --- Bildirim gönderme bölümü ---
+    const { data: subscriptions, error: subError } = await supabase
+      .from("push_subscriptions")
+      .select("*");
+
+    if (subError) {
+      console.error("Abonelikler çekilemedi:", subError);
+    } else if (subscriptions.length > 0 && uniqueOrders.length > 0) {
+      const latestOrder = uniqueOrders[0];
+	  const payload = {
+	    title: "Yeni Sipariş Geldi!",
+	    body: `Sipariş No: ${latestOrder.fisno}`,
+  	    url: `/?fisno=${latestOrder.fisno}`,
+	  };
+
+      await Promise.allSettled(
+        subscriptions.map(async (sub) => {
+          if (!sub.subscription) return;
+
+          let subscriptionObj = sub.subscription;
+          if (typeof subscriptionObj === "string") {
+            try {
+              subscriptionObj = JSON.parse(subscriptionObj);
+            } catch {
+              return; // Parse hatası varsa atla
+            }
+          }
+
+          try {
+            await sendPushNotification(subscriptionObj, payload);
+          } catch (e) {
+            const statusCode = e.statusCode || e.status || 0;
+            if (statusCode === 410 || statusCode === 404) {
+              console.log(`Abonelik geçersiz, siliniyor: ${subscriptionObj.endpoint}`);
+              const { error: delError } = await supabase
+                .from("push_subscriptions")
+                .delete()
+                .eq("endpoint", subscriptionObj.endpoint);
+              if (delError) console.error("Abonelik silme hatası:", delError);
+            } else {
+              console.error("Bildirim gönderme hatası:", e);
+            }
+          }
+        })
+      );
+	  
+	    await supabase
+    .from('orders')
+    .update({ push_sent: true })
+    .eq('fisno', latestOrder.fisno);
+    }
+
+    return res.status(200).json({
+      message:
+        "Siparişler başarıyla güncellendi, eski fişler temizlendi ve bildirimler gönderildi!",
+    });
+  } catch (err) {
+    console.error("Hata:", err);
+    return res.status(500).json({ message: "Sunucu hatası: " + err.message });
+  } finally {
+    if (pool) await pool.close();
+  }
+}
