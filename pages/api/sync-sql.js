@@ -71,7 +71,7 @@ export default async function handler(req, res) {
         p.STHAR_CARIKOD,
         s.KOD_5,
         CAST(ISNULL(d.DEPO_MIKTAR, 0) AS DECIMAL(18,0)) AS DEPO_MIKTAR,
-        dbo.trk(f.ACIK1) AS SIPARIS_NOTU, FIYATTARIHI AS SIPARISTARIHI
+        dbo.trk(f.ACIK1) AS SIPARIS_NOTU, CONVERT(varchar(33), FIYATTARIHI, 126) AS SIPARISTARIHI
       FROM TBLSIPATRA p
       INNER JOIN SonFisler sf ON p.FISNO = sf.FISNO
       LEFT JOIN TBLSTSABIT s ON p.STOK_KODU = s.STOK_KODU
@@ -245,4 +245,5 @@ export default async function handler(req, res) {
     if (pool) await pool.close();
   }
 }
+
 
