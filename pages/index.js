@@ -226,20 +226,15 @@ const siparisTarihi = selectedOrder.created_at || selectedOrder.SIPARISTARIHI;
 let tarihSaat = '-';
 
 if (siparisTarihi) {
-  let isoDateStr = siparisTarihi;
-
-  // Boşluk yerine T ve +00 yerine Z
-  isoDateStr = isoDateStr.replace(' ', 'T').replace('+00', 'Z');
-
-  // Bazı tarihlerde milis veya saniye eksik olabilir, buna dikkat
-  const d = new Date(isoDateStr);
+  // ISO string’e dönüştür
+  const d = new Date(siparisTarihi.replace(' ', 'T').replace('+00', 'Z'));
   if (!isNaN(d.getTime())) {
     tarihSaat = d.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' });
   } else {
     console.warn('Geçersiz tarih:', siparisTarihi);
   }
 }
-
+  
   const siparis_notu = selectedOrder.siparis_notu || '';
   
   const toplamFiyatRaw = selectedItems.reduce((sum, item) => {
@@ -645,6 +640,7 @@ if (siparisTarihi) {
   );
 
 }
+
 
 
 
