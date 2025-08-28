@@ -259,7 +259,8 @@ const tarihString =
     const qr = await generateQRCodeBase64(stokKod.toUpperCase());
     stokQRMap[stokKod] = qr;
   }
-
+console.log('Selected Order:', selectedOrder);
+console.log('created_at:', selectedOrder.created_at);
   const htmlContent = `
   <!DOCTYPE html>
   <html>
@@ -584,8 +585,7 @@ const tarihString =
             );
           })()}
       </div>
-console.log('Selected Order:', selectedOrder);
-console.log('created_at:', selectedOrder.created_at);
+
 
       {/* Cari popup */}
       {cariPopup.visible && (
@@ -637,6 +637,7 @@ console.log('created_at:', selectedOrder.created_at);
   );
 
 }
+
 
 
 
