@@ -132,19 +132,27 @@ function urlBase64ToUint8Array(base64String) {
     fetchCariData();
   }, []);
 
-  const fetchOrders = async () => {
-    try {
-      setStatus('Siparişler yükleniyor...');
-      const res = await fetch('/api/orders');
-      if (!res.ok) throw new Error('Sipariş verisi alınamadı');
-      const data = await res.json();
-      setOrders(data);
-      setStatus('');
-    } catch (err) {
-      console.error(err);
-      setStatus('Sipariş yükleme hatası: ' + err.message);
-    }
-  };
+const fetchOrders = async () => {
+  try {
+    setStatus('Siparişler yükleniyor...');
+    const res = await fetch('/api/orders');
+    if (!res.ok) throw new Error('Sipariş verisi alınamadı');
+    const data = await res.json();
+
+    // created_at tarih alanını Date objesine çevir
+    const parsedData = data.map(order => ({
+      ...order,
+      created_at: order.created_at ? new Date(order.created_at) : null
+    }));
+
+    setOrders(parsedData);
+    setStatus('');
+  } catch (err) {
+    console.error(err);
+    setStatus('Sipariş yükleme hatası: ' + err.message);
+  }
+};
+
 
   const fetchSelections = async () => {
     try {
@@ -221,7 +229,10 @@ const handlePrint = async () => {
   const rawCariKod = selectedOrder.carikod || '';
   const cariKod = normalizeCariKod(rawCariKod);
   const cariIsim = cariMap[cariKod] || 'Cari bilgi bulunamadı';
-  const tarihSaat = new Date().toLocaleString('tr-TR');
+  const tarihSaat = selectedOrder.created_at
+  ? selectedOrder.created_at.toLocaleString('tr-TR')
+  : new Date().toLocaleString('tr-TR'); // fallback olarak şimdiki zamanı kullan
+
   const siparis_notu = selectedOrder.siparis_notu || '';
   
   const toplamFiyatRaw = selectedItems.reduce((sum, item) => {
@@ -463,7 +474,7 @@ const handlePrint = async () => {
               {order.fisno}
             </option>
           ))}
-        </select></h2></div></div>
+        </select></h2>{order.created_at?.toLocaleDateString('tr-TR')}</div></div>
       <div>
         {selectedFisno &&
           (() => {
@@ -626,3 +637,4 @@ const handlePrint = async () => {
     </main>
   );
 }
+
