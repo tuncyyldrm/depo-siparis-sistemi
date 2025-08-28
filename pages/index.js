@@ -222,14 +222,13 @@ const handlePrint = async () => {
   const cariKod = normalizeCariKod(rawCariKod);
   const cariIsim = cariMap[cariKod] || 'Cari bilgi bulunamadı';  
   const siparis_notu = selectedOrder.siparis_notu || '';
-  const siparisTarihi = selectedOrder.created_at || selectedOrder.SIPARISTARIHI;
-  let tarihSaat = '-';
+  const siparisTarihi = selectedOrder?.created_at || selectedOrder?.SIPARISTARIHI;
+  let tarihSaat = "-";
   
   if (siparisTarihi) {
-    // ISO string ise direkt parse edilir, değilse yine Date'e çevir
     const d = new Date(siparisTarihi);
     if (!isNaN(d)) {
-      tarihSaat = d.toLocaleString('tr-TR');
+      tarihSaat = d.toLocaleString("tr-TR");
     }
   }
   
@@ -636,4 +635,5 @@ const handlePrint = async () => {
   );
 
 }
+
 
