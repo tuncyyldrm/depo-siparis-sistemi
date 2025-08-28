@@ -221,18 +221,25 @@ const handlePrint = async () => {
   const rawCariKod = selectedOrder.carikod || '';
   const cariKod = normalizeCariKod(rawCariKod);
   const cariIsim = cariMap[cariKod] || 'Cari bilgi bulunamadı';
-  const siparisTarihi = selectedOrder.created_at || selectedOrder.SIPARISTARIHI;
-  let tarihSaat = '-';
   
-  if (siparisTarihi) {
-    // Boşluk yerine 'T', '+00' yerine 'Z' yap
-    const isoDateStr = siparisTarihi.replace(' ', 'T').replace('+00', 'Z');
-    const d = new Date(isoDateStr);
-    if (!isNaN(d)) {
-      // Türkiye saat dilimine çevir
-      tarihSaat = d.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' });
-    }
+const siparisTarihi = selectedOrder.created_at || selectedOrder.SIPARISTARIHI;
+let tarihSaat = '-';
+
+if (siparisTarihi) {
+  let isoDateStr = siparisTarihi;
+
+  // Boşluk yerine T ve +00 yerine Z
+  isoDateStr = isoDateStr.replace(' ', 'T').replace('+00', 'Z');
+
+  // Bazı tarihlerde milis veya saniye eksik olabilir, buna dikkat
+  const d = new Date(isoDateStr);
+  if (!isNaN(d.getTime())) {
+    tarihSaat = d.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' });
+  } else {
+    console.warn('Geçersiz tarih:', siparisTarihi);
   }
+}
+
   const siparis_notu = selectedOrder.siparis_notu || '';
   
   const toplamFiyatRaw = selectedItems.reduce((sum, item) => {
@@ -638,5 +645,6 @@ const handlePrint = async () => {
   );
 
 }
+
 
 
