@@ -230,18 +230,9 @@ const handlePrint = async () => {
   const cariKod = normalizeCariKod(rawCariKod);
   const cariIsim = cariMap[cariKod] || 'Cari bilgi bulunamadı';
 
-const tarihSaat = (() => {
-  const str = selectedOrder?.created_at;
-  if (!str) return new Date().toLocaleString('tr-TR');
-
-  // '2025-08-26 16:01:42.89+00' → '2025-08-26T16:01:42.890Z'
-  const isoStr = str.replace(' ', 'T').replace(/(\.\d+)?\+00$/, 'Z');
-
-  const dateObj = new Date(isoStr);
-  if (isNaN(dateObj)) return new Date().toLocaleString('tr-TR');
-
-  return dateObj.toLocaleString('tr-TR');
-})();
+const tarihSaat = selectedOrder.created_at
+  ? new Date(selectedOrder.created_at + 'Z').toLocaleString('tr-TR')
+  : new Date().toLocaleString('tr-TR');
 
   const siparis_notu = selectedOrder.siparis_notu || '';
   
@@ -647,6 +638,7 @@ const tarihSaat = (() => {
     </main>
   );
 }
+
 
 
 
