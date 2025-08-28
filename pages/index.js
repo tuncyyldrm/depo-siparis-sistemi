@@ -231,8 +231,8 @@ const handlePrint = async () => {
   const cariIsim = cariMap[cariKod] || 'Cari bilgi bulunamadı';
 
 const tarihSaat = selectedOrder.created_at
-  ? new Date(selectedOrder.created_at).toLocaleString('tr-TR', { hour12: false })
-  : '';
+  ? new Date(selectedOrder.created_at + 'Z').toLocaleString('tr-TR')
+  : new Date().toLocaleString('tr-TR');
 
   const siparis_notu = selectedOrder.siparis_notu || '';
   
@@ -638,6 +638,7 @@ const tarihSaat = selectedOrder.created_at
     </main>
   );
 }
+
 
 
 
