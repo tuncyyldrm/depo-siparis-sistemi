@@ -220,9 +220,18 @@ const handlePrint = async () => {
   const selectedItems = selectedOrder.order_items;
   const rawCariKod = selectedOrder.carikod || '';
   const cariKod = normalizeCariKod(rawCariKod);
-  const cariIsim = cariMap[cariKod] || 'Cari bilgi bulunamadı';
-  const tarihSaat = new Date().toLocaleString('tr-TR');
+  const cariIsim = cariMap[cariKod] || 'Cari bilgi bulunamadı';  
   const siparis_notu = selectedOrder.siparis_notu || '';
+  const siparisTarihi = selectedOrder.created_at || selectedOrder.SIPARISTARIHI;
+  let tarihSaat = '-';
+  
+  if (siparisTarihi) {
+    // ISO string ise direkt parse edilir, değilse yine Date'e çevir
+    const d = new Date(siparisTarihi);
+    if (!isNaN(d)) {
+      tarihSaat = d.toLocaleString('tr-TR');
+    }
+  }
   
   const toplamFiyatRaw = selectedItems.reduce((sum, item) => {
     const fiyat = parseFloat(item.sthar_bf) || 0;
@@ -463,7 +472,7 @@ const handlePrint = async () => {
               {order.fisno}
             </option>
           ))}
-        </select></h2></div></div>
+        </select></h2>${tarihSaat}</div></div>
       <div>
         {selectedFisno &&
           (() => {
@@ -625,4 +634,5 @@ const handlePrint = async () => {
       )}
     </main>
   );
+
 }
