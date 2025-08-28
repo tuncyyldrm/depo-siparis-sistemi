@@ -474,7 +474,7 @@ const handlePrint = async () => {
               {order.fisno}
             </option>
           ))}
-        </select></h2>{order.created_at?.toLocaleDateString('tr-TR')}</div></div>
+        </select></h2></div></div>
       <div>
         {selectedFisno &&
           (() => {
@@ -637,4 +637,5 @@ const handlePrint = async () => {
     </main>
   );
 }
+
 
