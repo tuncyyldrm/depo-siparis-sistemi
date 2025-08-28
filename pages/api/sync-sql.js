@@ -71,7 +71,7 @@ export default async function handler(req, res) {
         p.STHAR_CARIKOD,
         s.KOD_5,
         CAST(ISNULL(d.DEPO_MIKTAR, 0) AS DECIMAL(18,0)) AS DEPO_MIKTAR,
-        dbo.trk(f.ACIK1) AS SIPARIS_NOTU
+        dbo.trk(f.ACIK1) AS SIPARIS_NOTU, FIYATTARIHI AS SIPARISTARIHI
       FROM TBLSIPATRA p
       INNER JOIN SonFisler sf ON p.FISNO = sf.FISNO
       LEFT JOIN TBLSTSABIT s ON p.STOK_KODU = s.STOK_KODU
@@ -94,7 +94,7 @@ export default async function handler(req, res) {
         fisno: temizleFisno(order.FISNO),
         carikod: order.STHAR_CARIKOD || null,
         siparis_notu: order.SIPARIS_NOTU || null,
-        created_at: new Date().toISOString(),
+        created_at: new Date(order.SIPARISTARIHI).toISOString(),
       }))
       .filter((o) => o.fisno);
 
@@ -245,3 +245,4 @@ export default async function handler(req, res) {
     if (pool) await pool.close();
   }
 }
+
