@@ -221,15 +221,7 @@ const handlePrint = async () => {
   const rawCariKod = selectedOrder.carikod || '';
   const cariKod = normalizeCariKod(rawCariKod);
   const cariIsim = cariMap[cariKod] || 'Cari bilgi bulunamadı';
-const siparisTarihi = selectedOrder.created_at
-  ? new Date(selectedOrder.created_at)
-  : null;
-
-const tarihString =
-  siparisTarihi && !isNaN(siparisTarihi.getTime())
-    ? siparisTarihi.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' })
-    : '-';
-
+  const tarihSaat = new Date().toLocaleString('tr-TR');
   const siparis_notu = selectedOrder.siparis_notu || '';
   
   const toplamFiyatRaw = selectedItems.reduce((sum, item) => {
@@ -259,8 +251,7 @@ const tarihString =
     const qr = await generateQRCodeBase64(stokKod.toUpperCase());
     stokQRMap[stokKod] = qr;
   }
-console.log('Selected Order:', selectedOrder);
-console.log('created_at:', selectedOrder.created_at);
+
   const htmlContent = `
   <!DOCTYPE html>
   <html>
@@ -299,7 +290,7 @@ console.log('created_at:', selectedOrder.created_at);
       <div class="header-top">
         <div>Fiş No: ${selectedFisno}</div>
         <img style="position:absolute;top:30px;right:0;"src="${qrBase64}" alt="QR Kod" width="65" height="65" />
-        <div>Tarih: ${tarihString}</div>   
+        <div>Tarih: ${tarihSaat} </div>     
       </div>
       <div style="width:90%" class="header-info">
       <div style="margin-bottom: 10px;">
@@ -586,7 +577,6 @@ console.log('created_at:', selectedOrder.created_at);
           })()}
       </div>
 
-
       {/* Cari popup */}
       {cariPopup.visible && (
         <div
@@ -635,17 +625,4 @@ console.log('created_at:', selectedOrder.created_at);
       )}
     </main>
   );
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
