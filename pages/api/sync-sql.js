@@ -86,19 +86,29 @@ export default async function handler(req, res) {
       return res.status(200).json({ message: "Yeni sipariş yok." });
     }
 
-    // Benzersiz siparişler (orders tablosu için)
-    const uniqueOrders = Array.from(
-      new Map(rows.map((row) => [temizleFisno(row.FISNO), row])).values()
-    )
-      .map((order) => ({
-        fisno: temizleFisno(order.FISNO),
-        carikod: order.STHAR_CARIKOD || null,
-        siparis_notu: order.SIPARIS_NOTU || null,
-        created_at: order.SIPARISTARIHI
-		  ? new Date(order.SIPARISTARIHI).toISOString()
-		  : null,
-      }))
-      .filter((o) => o.fisno);
+// Benzersiz siparişler (orders tablosu için)
+const uniqueOrders = Array.from(
+  new Map(rows.map((row) => [temizleFisno(row.FISNO), row])).values()
+)
+  .map((order) => {
+    let createdAtIso = null;
+
+    if (order.SIPARISTARIHI) {
+      // ' ' -> 'T', '.89+00' -> 'Z'
+      createdAtIso = order.SIPARISTARIHI
+        .replace(' ', 'T')
+        .replace(/(\.\d+)?\+00$/, 'Z');
+    }
+
+    return {
+      fisno: temizleFisno(order.FISNO),
+      carikod: order.STHAR_CARIKOD || null,
+      siparis_notu: order.SIPARIS_NOTU || null,
+      created_at: createdAtIso ? new Date(createdAtIso).toISOString() : null,
+    };
+  })
+  .filter((o) => o.fisno);
+
 
     // Sipariş kalemleri (order_items tablosu için)
     const orderItems = rows
@@ -247,6 +257,7 @@ export default async function handler(req, res) {
     if (pool) await pool.close();
   }
 }
+
 
 
 
