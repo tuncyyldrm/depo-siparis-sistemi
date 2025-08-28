@@ -104,11 +104,10 @@ const uniqueOrders = Array.from(
       fisno: temizleFisno(order.FISNO),
       carikod: order.STHAR_CARIKOD || null,
       siparis_notu: order.SIPARIS_NOTU || null,
-      created_at: createdAtIso ? new Date(createdAtIso).toISOString() : null,
+      created_at: order.SIPARISTARIHI || null,
     };
   })
   .filter((o) => o.fisno);
-
 
     // Sipariş kalemleri (order_items tablosu için)
     const orderItems = rows
@@ -257,6 +256,7 @@ const uniqueOrders = Array.from(
     if (pool) await pool.close();
   }
 }
+
 
 
 
